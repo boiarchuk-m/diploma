@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Commercial Listings{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+        rel="stylesheet">
+
+    <!-- Custom CSS -->
+     <link rel="stylesheet" type="text/css" href="../static/styles.css"/>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="{{ url_for('test.index') }}">Комерційна Нерухомість</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'test.index' %}active{% endif %}" href="{{ url_for('test.index') }}">Головна</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == '#' %}active{% endif %}" href="#">Оголошення</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/about">Про нас</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/contact">Контакти</a>
+        </li>
+        <li class="nav-item">
+          <a class="btn btn-light ms-3 px-3" href="/onboarding">Підібрати приміщення</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <!-- Vue App Container -->
+    <div id="app" class="container py-4">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Vue.js -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+
+    <!-- Custom JS -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

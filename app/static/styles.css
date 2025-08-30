@@ -1,0 +1,193 @@
+body {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    background-color: #f9fafb;
+    color: #333;
+}
+
+/* Navbar customization */
+.navbar {
+    background-color: #0d6efd; /* Bootstrap primary blue */
+}
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.3rem;
+}
+.nav-link {
+    font-weight: 500;
+}
+.nav-link:hover {
+    color: #ffc107 !important; /* Yellow hover */
+}
+
+/* Hero Section */
+.bg-light {
+    background: linear-gradient(135deg, #0d6efd, #6c63ff);
+    color: white;
+}
+.bg-light h1,
+.bg-light p {
+    color: white;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    transition: all 0.3s ease;
+}
+.btn-primary:hover {
+    background-color: #084298;
+    border-color: #084298;
+}
+
+/* Category Cards */
+.card {
+    border: none;
+    border-radius: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+.card-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+/* Search Bar */
+.input-group .form-control {
+    border-radius: 30px 0 0 30px;
+    padding: 0.75rem 1rem;
+}
+.input-group .btn {
+    border-radius: 0 30px 30px 0;
+    padding: 0.75rem 2rem;
+}
+
+/* Footer (optional for base.html later) */
+footer {
+    background-color: #0d6efd;
+    color: white;
+    padding: 20px 0;
+    margin-top: 40px;
+    text-align: center;
+}
+
+.hero {
+  background: linear-gradient(135deg, #0d6efd, #6610f2);
+  min-height: 70vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 30px 30px 30px 30px;
+  padding: 60px 20px;
+}
+
+.hero h1 {
+  font-size: 2.8rem;
+}
+
+.hero p {
+  font-size: 1.25rem;
+}
+
+/* Карточки */
+.card {
+  border-radius: 16px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Кнопки */
+.btn-lg {
+  border-radius: 30px;
+  padding: 0.75rem 2rem;
+}
+
+.navbar-brand {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.nav-link {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85) !important;
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: #fff !important;
+  font-weight: 600;
+}
+
+.navbar .btn {
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.onboarding-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #f8f9fa;
+  border: 2px solid #e0e0e0;
+  border-radius: 16px;
+  padding: 30px 20px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease-in-out;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+}
+
+.onboarding-option:hover {
+  background: #0d6efd;
+  color: #fff;
+  border-color: #0d6efd;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.onboarding-option span {
+  flex-grow: 1;
+  text-align: left;
+}
+
+/* Підпис до поля вводу */
+.area-option label {
+  font-weight: 600;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+/* Поля вводу */
+.area-option input {
+  width: 80px;
+  padding: 6px 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 1rem;
+  text-align: center;
+  transition: all 0.25s ease-in-out;
+}
+
+.area-option input:focus {
+  outline: none;
+  border-color: #0d6efd;
+  box-shadow: 0 0 8px rgba(13,110,253,0.3);
+}
+.area-container {
+  display: flex;
+  flex-direction: row;
+  justify-content:center;
+  align-items: center; /* вирівнювання по центру */
+  gap: 16px; /* відстань між рядками */
+  margin-top: 20px; /* верхній відступ від заголовка */
+}

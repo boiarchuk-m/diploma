@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Головна - Комерційна Нерухомість{% endblock %}
+
+{% block content %}
+<!-- Герой-секція -->
+<section class="hero d-flex align-items-center text-center text-white">
+  <div class="container">
+    <h1 class="display-4 fw-bold mb-3">Знайдіть ідеальне приміщення для вашого бізнесу</h1>
+    <a href="{{ url_for('test.onboarding') }}" class="btn btn-light btn-lg me-3">Підібрати приміщення</a>
+    <a href="/listings" class="btn btn-outline-light btn-lg">Переглянути всі</a>
+  </div>
+</section>
+
+<!-- Переваги -->
+<section class="py-5">
+  <div class="container text-center">
+    <h2 class="fw-bold mb-5">Чому обирають нас</h2>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body">
+            <h5 class="card-title fw-bold">Великий вибір</h5>
+            <p class="card-text">Тисячі варіантів у різних містах та районах</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body">
+            <h5 class="card-title fw-bold">Перевірені пропозиції</h5>
+            <p class="card-text">Лише актуальні та достовірні оголошення</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body">
+            <h5 class="card-title fw-bold">Підбір під вас</h5>
+            <p class="card-text">Зручний пошук та індивідуальні рекомендації</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Категорії -->
+<section class="py-5 bg-light">
+  <div class="container text-center">
+    <h2 class="fw-bold mb-5">Обирайте категорію</h2>
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title fw-bold">Офіси</h5>
+            <p class="card-text">Сучасні офісні простори для компаній будь-якого масштабу</p>
+            <a href="/listings?type=office" class="btn btn-outline-primary">Переглянути</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title fw-bold">Магазини</h5>
+            <p class="card-text">Приміщення з високою прохідністю для вашого бізнесу</p>
+            <a href="/listings?type=retail" class="btn btn-outline-primary">Переглянути</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title fw-bold">Склади</h5>
+            <p class="card-text">Великі та зручні склади з транспортною доступністю</p>
+            <a href="/listings?type=warehouse" class="btn btn-outline-primary">Переглянути</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

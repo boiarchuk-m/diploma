@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Onboarding - Commercial Listings{% endblock %}
+
+{% block content %}
+<div id="onboarding" class="container py-5">
+
+  <!-- Step 1: Categories -->
+  <div v-if="step === 1" class="text-center">
+    <h2 class="mb-4">Який тип приміщення вас цікавить?</h2>
+    <div class="row justify-content-center g-4">
+      <div class="col-md-4" v-for="category in categories" :key="category.id">
+        <button class="onboarding-option w-100" @click="selectType(category.business)">
+          [[ category.business ]]</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Area Selection -->
+  <div v-if="step === 2" class="text-center">
+    <h2 class="mb-4">Виберіть площу приміщення</h2>
+    <p>Рекомендована площа м²</p>
+    <div class="area-container">
+    <div class="area-option">
+      <label>Мінімум:</label>
+      <input type="number" v-model.number="area.min" :min="selectedCategory.minArea" :max="selectedCategory.maxArea">
+    </div>
+    <div class="area-option">
+      <label>Максимум:</label>
+      <input type="number" v-model.number="area.max" :min="area.min" :max="selectedCategory.maxArea">
+    </div>
+    </div>
+    <button class="btn btn-primary mt-3" @click="confirmArea">Підтвердити</button>
+  </div>
+</div>
+
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const categories = {{ categories|tojson }};
+console.log("hello");
+console.log(categories);
+</script>
+<script>
+const { createApp } = Vue;
+
+createApp({
+   delimiters: ['[[', ']]'],
+    data() {
+      return {
+        step: 1,
+        categories: {{ categories|tojson }},
+        selectedCategory: null,
+        area: { min: 0, max: 0 },
+      };
+    },
+    methods: {
+      selectType(type) {
+        this.selectedCategory = this.categories.find(c => c.business === type);
+        this.area.min = this.selectedCategory.squaremin;
+        this.area.max = this.selectedCategory.squaremax;
+        this.step = 2;
+      },
+      confirmArea() {
+        console.log("Selected area:", this.area);
+        // You can send this back to Flask using fetch/axios or a form
+      }
+    }
+}).mount('#onboarding');
+</script>
+{% endblock %}
