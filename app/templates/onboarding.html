@@ -11,16 +11,18 @@
     <div class="row justify-content-center g-4">
       <div class="col-md-4" v-for="category in categories" :key="category.id">
         <button class="onboarding-option w-100" @click="selectType(category.business)">
-          [[ category.business ]]</span>
+          [[ category.business ]]
         </button>
       </div>
+      </div>
     </div>
-  </div>
 
   <!-- Step 2: Area Selection -->
   <div v-if="step === 2" class="text-center">
     <h2 class="mb-4">Виберіть площу приміщення</h2>
+     <div v-if="selectedCategory.business !== 'Інше'" class="area-container">
     <p>Рекомендована площа м²</p>
+       </div>
     <div class="area-container">
     <div class="area-option">
       <label>Мінімум:</label>
@@ -33,7 +35,42 @@
     </div>
     <button class="btn btn-primary mt-3" @click="confirmArea">Підтвердити</button>
   </div>
+
+
+  <!-- STEP 3: Select districts -->
+<div v-if="step === 3" class="text-center">
+  <h2 class="mb-4">Оберіть райони, які вас цікавлять</h2>
+
+   <div class="row justify-content-center g-4">
+    <div class="col-md-4" v-for="district in districts" :key="district">
+      <button
+        class="onboarding-option w-100"
+        :class="{ active: selectedDistricts.includes(district) }"
+        @click="toggleDistrict(district)"
+      >
+        🏙️ <span>[[ district ]]</span>
+      </button>
+    </div>
+
+    <!-- "Not important" -->
+    <div class="col-md-4">
+      <button
+        class="onboarding-option w-100"
+        :class="{ active: notImportant }"
+        @click="selectNotImportant"
+      >
+        ❌ <span>Неважливо</span>
+      </button>
+    </div>
+  </div>
+
+  <button class="onboarding-option confirm-btn mt-4" @click="submitOnboarding">
+    ✅ Підтвердити
+  </button>
 </div>
+
+
+
 
 
 </div>
@@ -41,35 +78,78 @@
 
 {% block scripts %}
 <script>
-const categories = {{ categories|tojson }};
-console.log("hello");
-console.log(categories);
+  const categories = {{ categories|tojson }};
 </script>
 <script>
 const { createApp } = Vue;
 
 createApp({
-   delimiters: ['[[', ']]'],
-    data() {
-      return {
-        step: 1,
-        categories: {{ categories|tojson }},
-        selectedCategory: null,
-        area: { min: 0, max: 0 },
-      };
+  delimiters: ['[[', ']]'],
+  data() {
+    return {
+      step: 1,
+      categories: {{ categories|tojson }},
+      selectedCategory: null,
+      area: { min: 0, max: 0 },
+      districts: {{ districts|tojson }},
+      selectedDistricts: [],
+      notImportant: false
+    };
+  },
+  methods: {
+    async fetchCategories() {
+      this.categories = {{ categories|tojson }};
     },
-    methods: {
-      selectType(type) {
-        this.selectedCategory = this.categories.find(c => c.business === type);
+    selectType(type) {
+      this.selectedCategory = this.categories.find(c => c.business === type);
+      if (this.selectedCategory && this.selectedCategory.business !== "Інше") {
         this.area.min = this.selectedCategory.squaremin;
         this.area.max = this.selectedCategory.squaremax;
-        this.step = 2;
-      },
-      confirmArea() {
-        console.log("Selected area:", this.area);
-        // You can send this back to Flask using fetch/axios or a form
+      } else if (this.selectedCategory.business == "Інше") {
+        this.area.min = null;
+        this.area.max = null;
       }
+      this.step = 2;
+    },
+    confirmArea() {
+      this.step = 3;
+    },
+    toggleDistrict(district) {
+      this.notImportant = false;
+      const idx = this.selectedDistricts.indexOf(district);
+      if (idx > -1) this.selectedDistricts.splice(idx, 1);
+      else this.selectedDistricts.push(district);
+    },
+    selectNotImportant() {
+      this.notImportant = !this.notImportant;
+      if (this.notImportant) this.selectedDistricts = [];
+    },
+    submitOnboarding() {
+      const payload = {
+        business: this.selectedCategory.business,
+        area: { min: this.area.min, max: this.area.max },
+        districts: this.notImportant ? "not_important" : this.selectedDistricts
+      };
+      console.log("Sending:", payload);
+      fetch("/api/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => console.log("Response from backend:", data))
+      .catch(err => console.error("Error:", err));
     }
+  },
+  mounted() {
+    this.fetchCategories().then(() => {
+      this.categories.push({
+        business: "Інше",
+        squaremin: null,
+        squaremax: null
+      });
+    });
+  }
 }).mount('#onboarding');
 </script>
 {% endblock %}

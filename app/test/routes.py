@@ -33,4 +33,17 @@ def onboarding():
         }
         for c in businesses
     ]
-    return render_template("onboarding.html", categories = categories_list)
+
+    unique_districts = db.session.query(CommLeasing.district).distinct().all()
+    districts = [d[0] for d in unique_districts]
+    return render_template("onboarding.html",
+                           categories = categories_list,
+                           districts = districts)
+
+
+@test.route("/api/onboarding", methods=["POST"])
+def onboarding_submit():
+    data = request.get_json()
+    print("Received onboarding data:", data)
+    # тут зберігаєш в БД або обробляєш
+    return jsonify({"status": "ok", "received": data})
