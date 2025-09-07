@@ -10,8 +10,8 @@
     <h2 class="mb-4">Який тип приміщення вас цікавить?</h2>
     <div class="row justify-content-center g-4">
       <div class="col-md-4" v-for="category in categories" :key="category.id">
-        <button class="onboarding-option w-100" @click="selectType(category.business)">
-          [[ category.business ]]
+        <button class="onboarding-option w-100" @click="selectType(category.business_type)">
+          [[ category.business_type ]]
         </button>
       </div>
       </div>
@@ -101,10 +101,10 @@ createApp({
       this.categories = {{ categories|tojson }};
     },
     selectType(type) {
-      this.selectedCategory = this.categories.find(c => c.business === type);
+      this.selectedCategory = this.categories.find(c => c.business_type === type);
       if (this.selectedCategory && this.selectedCategory.business !== "Інше") {
-        this.area.min = this.selectedCategory.squaremin;
-        this.area.max = this.selectedCategory.squaremax;
+        this.area.min = this.selectedCategory.min_area;
+        this.area.max = this.selectedCategory.max_area;
       } else if (this.selectedCategory.business == "Інше") {
         this.area.min = null;
         this.area.max = null;
@@ -126,12 +126,12 @@ createApp({
     },
     submitOnboarding() {
       const payload = {
-        business: this.selectedCategory.business,
+        business_type: this.selectedCategory.business_type,
         area: { min: this.area.min, max: this.area.max },
         districts: this.notImportant ? "not_important" : this.selectedDistricts
       };
       console.log("Sending:", payload);
-      fetch("/api/onboarding", {
+      fetch("/onboarding/offers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -144,9 +144,9 @@ createApp({
   mounted() {
     this.fetchCategories().then(() => {
       this.categories.push({
-        business: "Інше",
-        squaremin: null,
-        squaremax: null
+        business_type: "Інше",
+        min_area: null,
+        max_area: null
       });
     });
   }
