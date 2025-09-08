@@ -6,7 +6,7 @@ from app.models.nearby_business import NearbyBusiness
 import json
 from flask import Response
 from flask import render_template, request, jsonify
-
+import math
 
 
 
@@ -146,21 +146,84 @@ def algorytm():
             stops = env.stops
 
             criteria_rows.append({
-                'Alternative': o.id,
-                'Area': area,
-                'Price': o.price,
-                'Stops': stops,
-                'Competitors': competitors,
-                'OtherBiz': otherbiz
+                'alternative': o.id,
+                'area': area,
+                'price': o.price,
+                'stops': stops,
+                'competitors': competitors,
+                'otherbiz': otherbiz
             })
 
-        return jsonify(criteria_rows)
+        return criteria_rows
+
+
+    def calculations(criteria_rows, weights):
+        cols = ['area', 'price', 'stops', 'competitors', 'otherbiz']
+        criteria = {
+                'area': 'benefit',
+                'price': 'cost',
+                'stops': 'benefit',
+                'competitors': 'cost',
+                'otherbiz': 'benefit'
+            }
+
+        for row in criteria_rows:
+            for col, t in criteria.items():
+                if t == 'cost':
+                    row[col] = 1 / row[col] if row[col] != 0 else 0
+
+        # normalizing
+        norm_factors = {}
+        for col in cols:
+            norm_factors[col] = math.sqrt(sum(row[col] ** 2 for row in criteria_rows))
+        for row in criteria_rows:
+            for col in cols:
+                row[col] = row[col] / norm_factors[col] if norm_factors[col] != 0 else 0
+
+        for row in criteria_rows:
+            for col in cols:
+                row[col] *= weights[col]
+
+        # Ідеальний та антиідеальний розв’язки
+        ideal = {col: max(row[col] for row in criteria_rows) for col in cols}
+        antei = {col: min(row[col] for row in criteria_rows) for col in cols}
+
+        # Відстані до ідеалу та антиідеалу
+        for row in criteria_rows:
+            d_plus = math.sqrt(sum((row[col] - ideal[col]) ** 2 for col in cols))
+            d_minus = math.sqrt(sum((row[col] - antei[col]) ** 2 for col in cols))
+            row['Score'] = d_minus / (d_plus + d_minus) if (d_plus + d_minus) != 0 else 0
+
+        # Ранжування
+        sorted_scores = sorted([row['Score'] for row in criteria_rows], reverse=True)
+        for row in criteria_rows:
+            row['Rank'] = sorted_scores.index(row['Score']) + 1
+
+        return criteria_rows
+
+
+    def get_results(results, offers):
+        final_output=[]
+
+        offers_map = {o.id: o for o in offers}
+
+        for r in results:
+            print(results)
+            offer = offers_map[r['alternative']]
+            data = offer.serialize()
+            data['Rank'] = r['Rank']
+            final_output.append(data)
+
+
+        return jsonify(final_output)
 
 
 
     weights = get_weights(user_choice)
     offers = get_offers(user_choice)
     matrix = get_matrix(offers['data'], user_choice)
+    res = calculations(matrix, weights)
+    final_res = get_results(res, offers['data'])
 
-    return matrix
+    return final_res
 
