@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Результати підбору{% endblock %}
+
+{% block content %}
+  <div id="app">
+
+    <div v-if="loading">Завантаження...</div>
+
+    <div v-else class="offers">
+      <div v-for="offer in offers" :key="offer.id" class="offer-card">
+        <!-- Left: photo -->
+         <div class="thumb-wrap">
+        <img
+          v-if="offer.photos && offer.photos.length"
+          :src="offer.photos[0]"
+          class="offer-photo"
+          :alt="offer.address"
+          loading="lazy"
+        >
+        </div>
+
+        <!-- Right: info -->
+        <div class="offer-info">
+          <div class="offer-top">
+            <div>
+              <div class="address">[[ offer.address ]]</div>
+    
+              <div class="meta">
+                [[ offer.price.toLocaleString() ]] грн/міс <br>
+                [[ offer.district ]] район &bull; [[ offer.area ]] м²
+              </div>
+            </div>
+          </div>
+
+          <div class="tags">
+            <span class="tag" v-for="(t, i) in splitTags(offer.recommended_for)" :key="i">[[ t ]]</span>
+          </div>
+
+          <div class="desc">[[ shorten(offer.description) ]]</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+{% endblock %}
+
+
+
+{% block scripts %}
+<script>
+
+const app = Vue.createApp({
+     delimiters: ['[[', ']]'],
+       data() {
+        return {
+          offers: [],
+          loading: true
+        };
+      },
+      methods: {
+        shorten(text) {
+          return text && text.length > 180 ? text.slice(0, 180) + '…' : text;
+        },
+        splitTags(tags) {
+          return tags ? tags.split(',').map(t => t.trim()) : [];
+        }
+      },
+      mounted() {
+        fetch('/test')
+          .then(res => res.json())
+          .then(data => {
+            this.offers = data;
+            this.loading = false;
+          })
+          .catch(err => {
+            console.error('Error loading offers:', err);
+            this.loading = false;
+          });
+      }
+    });
+
+    app.mount('#app');
+  </script>
+{% endblock %}

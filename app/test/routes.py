@@ -3,9 +3,10 @@ from app.test import test
 from app.models.comm_leasing import CommLeasing
 from app.models.business_type import Business_type
 from app.models.nearby_business import NearbyBusiness
+from app.models.offer_photo import OfferPhoto
 import json
 from flask import Response
-from flask import render_template, request, jsonify
+from flask import render_template, request, jsonify, url_for
 import math
 
 
@@ -114,16 +115,17 @@ def algorytm():
                       all())
             return {"note": "No results for filtered values", "data": offers}
 
-    def desirability_area(x, low, high):
+    def desirability_area(x, low, high, persentage=0.3):
         if low is None or high is None:
             return 1.0
-        tol = (high - low) / 3
+        low_lim = low * (1 - persentage)
+        high_lim = high * (1 + persentage)
         if low <= x <= high:
             return 1.0
-        elif low - tol < x < low:
-            return (x - (low - tol)) / tol
-        elif high < x < high + tol:
-            return ((high + tol) - x) / tol
+        elif low_lim < x < low:
+            return (x - low_lim) / (low - low_lim)
+        elif high < x < high_lim:
+            return (high_lim - x) / (high_lim - high)
         else:
             return 0.0
 
@@ -208,11 +210,25 @@ def algorytm():
         offers_map = {o.id: o for o in offers}
 
         for r in results:
-            print(results)
             offer = offers_map[r['alternative']]
             data = offer.serialize()
             data['Rank'] = r['Rank']
+
+            photos =(OfferPhoto.query.
+                     filter(OfferPhoto.offer_id == offer.id).filter(OfferPhoto.is_primary == True).all())
+            
+            photo_urls = [p.photo_url for p in photos]
+            urls=[]
+            for p in photo_urls:
+                path = p.replace('\\', '/').lstrip('/')
+                urls.append(url_for('static', filename=path))
+            data['photos'] = urls
+                
             final_output.append(data)
+
+          # sort by Rank ascending (1 = best)
+        final_output.sort(key=lambda x: x.get('Rank', float('inf')))
+
 
 
         return jsonify(final_output)
@@ -226,4 +242,9 @@ def algorytm():
     final_res = get_results(res, offers['data'])
 
     return final_res
+
+
+@test.route('/results_page')
+def results_page():
+    return render_template('offers.html')
 
