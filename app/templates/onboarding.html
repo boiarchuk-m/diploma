@@ -10,15 +10,39 @@
     <h2 class="mb-4">Який тип приміщення вас цікавить?</h2>
     <div class="row justify-content-center g-4">
       <div class="col-md-4" v-for="category in categories" :key="category.id">
-        <button class="onboarding-option w-100" @click="selectType(category.business_type)">
+        <button class="onboarding-option w-100" @click="selectType(category)">
           [[ category.business_type ]]
         </button>
       </div>
       </div>
     </div>
 
-  <!-- Step 2: Area Selection -->
+
+    <!-- Step 2: City Selection -->
   <div v-if="step === 2" class="text-center">
+    <h2 class="mb-4">Виберіть місто</h2>
+    <div class="row justify-content-center g-3">
+      <div class="col-md-3" v-for="city in cities" :key="city">
+        <button
+          class="onboarding-option w-100"
+          :class="{ active: selectedCity === city }"
+          @click="selectCity(city)"
+        >
+          [[ city ]]
+        </button>
+      </div>
+    </div>
+
+    <div class="mt-3">
+      <button class="btn btn-secondary" @click="step = 1"> Назад</button>
+    </div>
+  </div>
+
+
+
+
+  <!-- Step 3: Area Selection -->
+  <div v-if="step === 3" class="text-center">
     <h2 class="mb-4">Виберіть площу приміщення</h2>
      <div v-if="selectedCategory.business !== 'Інше'" class="area-container">
     <p>Рекомендована площа м²</p>
@@ -33,12 +57,15 @@
       <input type="number" v-model.number="area.max" :min="area.min" :max="selectedCategory.maxArea">
     </div>
     </div>
-    <button class="btn btn-primary mt-3" @click="confirmArea">Підтвердити</button>
+    <div class="mt-3">
+      <button class="btn btn-secondary me-2" @click="step = 2"> Назад</button>
+      <button class="btn btn-primary" @click="confirmArea">Підтвердити</button>
+    </div>
   </div>
 
 
-  <!-- STEP 3: Select districts -->
-<div v-if="step === 3" class="text-center">
+  <!-- STEP 4: Select districts -->
+<div v-if="step === 4" class="text-center">
   <h2 class="mb-4">Оберіть райони, які вас цікавлять</h2>
 
    <div class="row justify-content-center g-4">
@@ -48,7 +75,7 @@
         :class="{ active: selectedDistricts.includes(district) }"
         @click="toggleDistrict(district)"
       >
-        🏙️ <span>[[ district ]]</span>
+         <span>[[ district ]]</span>
       </button>
     </div>
 
@@ -59,14 +86,17 @@
         :class="{ active: notImportant }"
         @click="selectNotImportant"
       >
-        ❌ <span>Неважливо</span>
+         <span>Неважливо</span>
       </button>
     </div>
   </div>
 
-  <button class="onboarding-option confirm-btn mt-4" @click="submitOnboarding">
-    ✅ Підтвердити
-  </button>
+   <div class="mt-3">
+      <button class="btn btn-secondary me-2" @click="step = 3">Назад</button>
+      <button class="onboarding-option confirm-btn mt-4" @click="submitOnboarding">
+         Підтвердити
+      </button>
+    </div>
 </div>
 
 
@@ -77,42 +107,69 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-  const categories = {{ categories|tojson }};
-</script>
+<script id ="initial-data" type="application/json">
+ {{ {'categories': categories, 'districts': districts, 'cities':cities} |tojson }}
+</script> 
+ 
 <script>
 const { createApp } = Vue;
+const initial = JSON.parse(document.getElementById('initial-data').textContent);
 
 createApp({
   delimiters: ['[[', ']]'],
   data() {
     return {
       step: 1,
-      categories: {{ categories|tojson }},
+      categories: initial.categories || [],
       selectedCategory: null,
-      area: { min: 0, max: 0 },
-      districts: {{ districts|tojson }},
+      area: { min: null, max: null },
+      districts: initial.districts || [],
+      cities: initial.cities || [],
       selectedDistricts: [],
-      notImportant: false
+      notImportant: false,
+      submitting: false,
+      errors: []
     };
   },
-  methods: {
-    async fetchCategories() {
-      this.categories = {{ categories|tojson }};
-    },
-    selectType(type) {
-      this.selectedCategory = this.categories.find(c => c.business_type === type);
-      if (this.selectedCategory && this.selectedCategory.business !== "Інше") {
-        this.area.min = this.selectedCategory.min_area;
-        this.area.max = this.selectedCategory.max_area;
-      } else if (this.selectedCategory.business == "Інше") {
+
+  watch: {
+    // set sensible defaults when user selects a category
+    selectedCategory(cat) {
+      if (!cat) {
+        this.area.min = null;
+        this.area.max = null;
+        return;
+      }
+      // backend field names: min_area / max_area
+      if (cat.business_type !== 'Інше') {
+        this.area.min = cat.min_area ?? this.area.min ?? 0;
+        this.area.max = cat.max_area ?? this.area.max ?? this.area.min;
+      } else {
         this.area.min = null;
         this.area.max = null;
       }
+    }
+  },
+  methods: {
+     selectType(category) {
+      this.selectedCategory = category || null;
       this.step = 2;
     },
+     selectCity(city) {
+      this.selectedCity = city;
+      this.step = 3; // go to area selection
+    },
     confirmArea() {
-      this.step = 3;
+      // validate area range when category expects a range
+      this.errors = [];
+      if (this.selectedCategory && this.selectedCategory.business_type !== 'Інше') {
+        if (this.area.min == null || this.area.max == null) {
+          this.errors.push('Please set min and max area.');
+        } else if (this.area.min > this.area.max) {
+          this.errors.push('Min area cannot be greater than max area.');
+        }
+      }
+      if (this.errors.length === 0) this.step = 4;
     },
     toggleDistrict(district) {
       this.notImportant = false;
@@ -124,31 +181,45 @@ createApp({
       this.notImportant = !this.notImportant;
       if (this.notImportant) this.selectedDistricts = [];
     },
-    submitOnboarding() {
+     async submitOnboarding() {
+      if (!this.selectedCategory) {
+        this.errors = ['Please choose a category.'];
+        return;
+      }
+      if (!this.selectedCity) {
+        this.errors = ['Please choose a city.'];
+        return;
+      }
+      this.submitting = true;
       const payload = {
         business_type: this.selectedCategory.business_type,
         area: { min: this.area.min, max: this.area.max },
         districts: this.notImportant ? "not_important" : this.selectedDistricts
       };
-      console.log("Sending:", payload);
-      fetch("/onboarding/offers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      })
-      .then(res => res.json())
-      .then(data => console.log("Response from backend:", data))
-      .catch(err => console.error("Error:", err));
+      try {
+        const res = await fetch("/onboarding/offers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Network response was not ok');
+        const data = await res.json();
+        // on success, navigate to results or show a message
+        window.location.href = data.redirect || '/results_page';
+      } catch (err) {
+        console.error(err);
+        this.errors = ['Failed to submit. Please try again.'];
+      } finally {
+         this.submitting = false;
+      }
     }
   },
+
   mounted() {
-    this.fetchCategories().then(() => {
-      this.categories.push({
-        business_type: "Інше",
-        min_area: null,
-        max_area: null
-      });
-    });
+   // ensure "Інше" option exists
+    if (!this.categories.some(c => c.business_type === 'Інше')) {
+      this.categories.push({ id: null, business_type: 'Інше', min_area: null, max_area: null });
+    }
   }
 }).mount('#onboarding');
 </script>

@@ -40,20 +40,25 @@ def onboarding():
 
     unique_districts = db.session.query(CommLeasing.district).distinct().all()
     districts = [d[0] for d in unique_districts]
+    unique_cities = db.session.query(CommLeasing.city).distinct().all()
+    cities = [c[0] for c in unique_cities]
     return render_template("onboarding.html",
                            categories = categories_list,
-                           districts = districts)
+                           districts = districts,
+                           cities = cities
+                           )
 
 
-@test.route("/onboarding/offers", methods=["POST"])
-def onboarding_submit():
-    data = request.get_json()
-    print("Received onboarding data:", data)
-    return jsonify({"status": "ok", "received": data})
 
 
-@test.route("/test")
-def algorytm():
+def run_algorithm(user_choice):
+
+     # resolve business type name if id provided
+    if user_choice.get('business_type_id') and not user_choice.get('business_type'):
+        bt = Business_type.query.get(user_choice['business_type_id'])
+        user_choice['business_type'] = bt.business_type if bt else "Інше"
+
+
     business_map = {
         "Кав’ярня/кафе": "cafes",
         "Ресторан": "restaurants",
@@ -69,17 +74,17 @@ def algorytm():
         "Фітнес-зал/студія": "gyms"
     }
 
-    user_choice = {
-        "business_type": "Кав’ярня/кафе",
-        #"business_type": "Інше",
-        "area":  {'min': 40, 'max': 70},
-        "preferred_districts": ["Шевченківський", "Печерський"]
-    }
+   # user_choice = {
+    #    "business_type": "Кав’ярня/кафе",
+    #    #"business_type": "Інше",
+    #    "area":  {'min': 40, 'max': 70},
+    #    "preferred_districts": ["Шевченківський", "Печерський"]
+    #}
 
 
     def get_weights(user_choice):
-        weights =None
-        business = user_choice['business_type']
+        print("User choice in get_weights:", user_choice)
+        business = user_choice.get('business_type')
         if business== "Інше":
             weights = {
                 'area': 0.3,
@@ -104,16 +109,21 @@ def algorytm():
         return weights
 
     def get_offers(user_choice):
-        preferred_districts = user_choice['preferred_districts']
-        offers = (db.session.query(CommLeasing).
-                  filter(CommLeasing.district.in_(preferred_districts)).
-                  all())
+        q= db.session.query(CommLeasing)
+        preferred_districts = user_choice.get('preferred_districts') or []
+        if preferred_districts:
+            q=q.filter(CommLeasing.district.in_(preferred_districts))
+        offers = q.all()
         if offers:
             return {"note": "Filtered results", "data": offers}
-        else:
-            offers = (db.session.query(CommLeasing).
-                      all())
-            return {"note": "No results for filtered values", "data": offers}
+        
+        if user_choice.get('city'):
+            offers = db.session.query(CommLeasing).filter(CommLeasing.city == user_choice['city']).all()
+            if offers:
+                return {"note": "City filtered results", "data": offers}
+        # fallback: all offers
+        offers = db.session.query(CommLeasing).all()
+        return {"note": "All results", "data": offers}
 
     def desirability_area(x, low, high, persentage=0.3):
         if low is None or high is None:
@@ -130,9 +140,9 @@ def algorytm():
             return 0.0
 
     def get_matrix(offers, user_choise):
-        area_min = user_choise['area']['min']
-        area_max = user_choise['area']['max']
-        business_type = business_map[user_choice['business_type']]
+        area_min = user_choise.get('area', {}).get('min')
+        area_max = user_choise.get('area', {}).get('max')
+        business_type = business_map.get(user_choice.get('business_type'))
         criteria_rows = []
         for o in offers:
             env = db.session.query(NearbyBusiness).filter_by(offer_id=o.id).first()
@@ -210,12 +220,16 @@ def algorytm():
         offers_map = {o.id: o for o in offers}
 
         for r in results:
-            offer = offers_map[r['alternative']]
+            offer = offers_map.get(r['alternative'])
+            if not offer:
+                continue
             data = offer.serialize()
             data['Rank'] = r['Rank']
 
             photos =(OfferPhoto.query.
-                     filter(OfferPhoto.offer_id == offer.id).filter(OfferPhoto.is_primary == True).all())
+                     filter(OfferPhoto.offer_id == offer.id)
+                     .filter(OfferPhoto.is_primary == True)
+                     .all())
             
             photo_urls = [p.photo_url for p in photos]
             urls=[]
@@ -230,8 +244,8 @@ def algorytm():
         final_output.sort(key=lambda x: x.get('Rank', float('inf')))
 
 
+        return final_output
 
-        return jsonify(final_output)
 
 
 
@@ -243,6 +257,44 @@ def algorytm():
 
     return final_res
 
+@test.route("/onboarding/offers", methods=["POST"])
+def onboarding_submit():
+    data = request.get_json() or {}
+    print("Received onboarding data:", data)
+
+    # normalize incoming payload
+    user_choice = {}
+    if 'business_type_id' in data:
+        user_choice['business_type_id'] = data['business_type_id']
+    elif 'business_type' in data:
+        user_choice['business_type'] = data['business_type']
+
+    if 'area' in data:
+        user_choice['area'] = {'min': data['area'].get('min'), 'max': data['area'].get('max')}
+    if 'districts' in data and data.get('districts') != "not_important":
+        user_choice['preferred_districts'] = data.get('districts') if isinstance(data.get('districts'), list) else []
+    else:
+        user_choice['preferred_districts'] = []
+
+    if 'city' in data:
+        user_choice['city'] = data['city']
+
+    results = run_algorithm(user_choice)
+    print ("Algorithm results:", results)
+    return jsonify(results)
+
+
+
+@test.route("/test")
+def algorytm():
+    # default/hardcoded example for testing
+    default_choice = {
+        "business_type": "Кав’ярня/кафе",
+        "area": {'min': 40, 'max': 70},
+        "preferred_districts": ["Шевченківський", "Печерський"]
+    }
+    results = run_algorithm(default_choice)
+    return jsonify(results)
 
 @test.route('/results_page')
 def results_page():
