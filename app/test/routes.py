@@ -257,10 +257,13 @@ def run_algorithm(user_choice):
 
     return final_res
 
-@test.route("/onboarding/offers", methods=["POST"])
+@test.route("/onboarding/offers", methods=["POST", "GET"])
 def onboarding_submit():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
     print("Received onboarding data:", data)
+    if not data and request.form.get('payload'):
+        data = json.loads(request.form['payload'])
+    data = data or {}
 
     # normalize incoming payload
     user_choice = {}
@@ -280,8 +283,8 @@ def onboarding_submit():
         user_choice['city'] = data['city']
 
     results = run_algorithm(user_choice)
-    print ("Algorithm results:", results)
-    return jsonify(results)
+
+    return render_template('offers.html', offers=results)
 
 
 

@@ -49,6 +49,9 @@
 
 
 {% block scripts %}
+<script id="initial-data" type="application/json">
+  {{ offers|tojson }}
+  </script>
 <script>
 
 const app = Vue.createApp({
@@ -68,16 +71,15 @@ const app = Vue.createApp({
         }
       },
       mounted() {
-        fetch('/test')
-          .then(res => res.json())
-          .then(data => {
-            this.offers = data;
-            this.loading = false;
-          })
-          .catch(err => {
-            console.error('Error loading offers:', err);
-            this.loading = false;
-          });
+        try{
+          const raw = document.getElementById('initial-data').textContent || '[]';
+          this.offers = JSON.parse(raw);
+        } catch (e) {
+          console.error('Failed to parse initial offers:', e);
+          this.offers = [];
+        } finally {
+          this.loading = false;
+        }
       }
     });
 
