@@ -44,17 +44,23 @@
   <!-- Step 3: Area Selection -->
   <div v-if="step === 3" class="text-center">
     <h2 class="mb-4">Виберіть площу приміщення</h2>
-     <div v-if="selectedCategory.business !== 'Інше'" class="area-container">
+     <div v-if="selectedCategory && selectedCategory.business_type !== 'Інше'" class="area-container">
     <p>Рекомендована площа м²</p>
        </div>
     <div class="area-container">
     <div class="area-option">
       <label>Мінімум:</label>
-      <input type="number" v-model.number="area.min" :min="selectedCategory.minArea" :max="selectedCategory.maxArea">
+      <input type="number" 
+        v-model.number="area.min" 
+        :min="selectedCategory ? selectedCategory.min_area : null" 
+        :max="selectedCategory ? selectedCategory.max_area : null">
     </div>
     <div class="area-option">
       <label>Максимум:</label>
-      <input type="number" v-model.number="area.max" :min="area.min" :max="selectedCategory.maxArea">
+      <input type="number" 
+      v-model.number="area.max" 
+      :min="area.min" 
+      :max="selectedCategory ? selectedCategory.max_area : null">
     </div>
     </div>
     <div class="mt-3">
@@ -192,8 +198,8 @@ createApp({
       }
       this.submitting = true;
       const payload = {
-        business_type_id: this.selectedCategory.id,
-        business_type: this.selectedCategory.business_type,
+        business_type_id: this.selectedCategory ? this.selectedCategory.id : null,
+        business_type: this.selectedCategory ? this.selectedCategory.business_type : null,
         area: { min: this.area.min, max: this.area.max },
         districts: this.notImportant ? "not_important" : this.selectedDistricts,
         city: this.selectedCity
@@ -204,6 +210,7 @@ createApp({
         form.action = '/onboarding/offers';
         form.style.display = 'none';
         const input = document.createElement('input');
+        input.type = 'hidden';
         input.name = 'payload';
         input.value = JSON.stringify(payload);
         form.appendChild(input);

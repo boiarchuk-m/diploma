@@ -9,6 +9,7 @@ import json
 from flask import Response
 from flask import render_template, request, jsonify, url_for
 import math
+from app.services.ranking_service import RankingService
 
 
 
@@ -53,11 +54,11 @@ def onboarding():
 
 
 def run_algorithm(user_choice):
-
+    print("User choice at start of run_algorithm:", user_choice)
      # resolve business type name if id provided
-    if user_choice.get('business_type_id') and not user_choice.get('business_type'):
-        bt = Business_type.query.get(user_choice['business_type_id'])
-        user_choice['business_type'] = bt.business_type if bt else "Інше"
+    #if user_choice.get('business_type_id') and not user_choice.get('business_type'):
+    #    bt = Business_type.query.get(user_choice['business_type_id'])
+    #    user_choice['business_type'] = bt.business_type if bt else "Інше"
 
 
     business_map = {
@@ -86,6 +87,7 @@ def run_algorithm(user_choice):
     def get_weights(user_choice):
         print("User choice in get_weights:", user_choice)
         business = user_choice.get('business_type')
+        print("business_type", business)
         if business== "Інше":
             weights = {
                 'area': 0.3,
@@ -153,7 +155,7 @@ def run_algorithm(user_choice):
             comp =  db.session.query(NumBusinesses.number).filter_by(offer_id=o.id, business_type_id=business_type_id).first()
             competitors = comp.number if comp else 0
             otherbiz = db.session.query(db.func.sum(NumBusinesses.number)).filter(NumBusinesses.offer_id == o.id,
-            NumBusinesses.business_type_id != 1).scalar()        
+            NumBusinesses.business_type_id != business_type_id).scalar()        
 
             criteria_rows.append({
                 'alternative': o.id,
@@ -180,7 +182,7 @@ def run_algorithm(user_choice):
         for row in criteria_rows:
             for col, t in criteria.items():
                 if t == 'cost':
-                    row[col] = 1 / row[col] if row[col] != 0 else 0
+                    row[col] = 1 / (row[col] + 1e-12) # avoid division by zero
 
         # normalizing
         norm_factors = {}
@@ -248,9 +250,12 @@ def run_algorithm(user_choice):
 
 
     weights = get_weights(user_choice)
+    print("Weights:", weights)
     offers = get_offers(user_choice)
     matrix = get_matrix(offers['data'], user_choice)
+    print("Matrix:", matrix)
     res = calculations(matrix, weights)
+    print("Calculations result:", res)
     final_res = get_results(res, offers['data'])
 
     return final_res
@@ -262,27 +267,26 @@ def onboarding_submit():
     if not data and request.form.get('payload'):
         data = json.loads(request.form['payload'])
     data = data or {}
+    print("Processed onboarding data:", data)
 
     # normalize incoming payload
-    user_choice = {}
-    if 'business_type_id' in data:
-        user_choice['business_type_id'] = data['business_type_id']
-    elif 'business_type' in data:
-        user_choice['business_type'] = data['business_type']
+    user_choice = {
+        "business_type": data.get("business_type"),
+        "business_type_id": data.get("business_type_id"),
+        "area": {"min": data.get("area", {}).get("min"),
+                 "max": data.get("area", {}).get("max")},
+        "preferred_districts": data.get("districts", []),
+        "city": data.get("city")
+    }
 
-    if 'area' in data:
-        user_choice['area'] = {'min': data['area'].get('min'), 'max': data['area'].get('max')}
-    if 'districts' in data and data.get('districts') != "not_important":
-        user_choice['preferred_districts'] = data.get('districts') if isinstance(data.get('districts'), list) else []
-    else:
-        user_choice['preferred_districts'] = []
+    #results = run_algorithm(user_choice)
 
-    if 'city' in data:
-        user_choice['city'] = data['city']
+    service = RankingService(user_choice)
+    results = service.run()
 
-    results = run_algorithm(user_choice)
+    return  jsonify(results)
 
-    return render_template('offers.html', offers=results)
+    #return render_template('offers.html', offers=results)
 
 
 
