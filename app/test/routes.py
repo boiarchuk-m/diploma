@@ -3,6 +3,7 @@ from app.test import test
 from app.models.comm_leasing import CommLeasing
 from app.models.business_type import Business_type
 from app.models.nearby_business import NearbyBusiness
+from app.models.num_businesses import NumBusinesses
 from app.models.offer_photo import OfferPhoto
 import json
 from flask import Response
@@ -143,19 +144,16 @@ def run_algorithm(user_choice):
         area_min = user_choise.get('area', {}).get('min')
         area_max = user_choise.get('area', {}).get('max')
         business_type = business_map.get(user_choice.get('business_type'))
+        business_type_id = user_choice.get('business_type_id')
         criteria_rows = []
         for o in offers:
-            env = db.session.query(NearbyBusiness).filter_by(offer_id=o.id).first()
-            if not env:
-                continue
             area_val =o.area
             area= desirability_area(area_val, area_min, area_max)
-            competitors = getattr(env, business_type)
-            otherbiz = sum([
-                getattr(env, col) for col in business_map.values()
-                if col != business_type
-            ])
-            stops = env.stops
+            stops = o.stops_num
+            comp =  db.session.query(NumBusinesses.number).filter_by(offer_id=o.id, business_type_id=business_type_id).first()
+            competitors = comp.number if comp else 0
+            otherbiz = db.session.query(db.func.sum(NumBusinesses.number)).filter(NumBusinesses.offer_id == o.id,
+            NumBusinesses.business_type_id != 1).scalar()        
 
             criteria_rows.append({
                 'alternative': o.id,
@@ -163,9 +161,9 @@ def run_algorithm(user_choice):
                 'price': o.price,
                 'stops': stops,
                 'competitors': competitors,
-                'otherbiz': otherbiz
+                'otherbiz': otherbiz,
             })
-
+        #print("Criteria Rows:", criteria_rows)
         return criteria_rows
 
 

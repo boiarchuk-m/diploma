@@ -13,6 +13,7 @@ class CommLeasing(db.Model):
     repair = db.Column(db.String(50))
     city =db.Column(db.String(100))
     recommended_for = db.Column(db.String(255))
+    stops_num = db.Column(db.Integer, nullable=True)
 
     def serialize(self):
         return {
@@ -24,7 +25,8 @@ class CommLeasing(db.Model):
             'description': self.description,
             'repair': self.repair,
             'city': self.city,
-            'recommended_for': self.recommended_for
+            'recommended_for': self.recommended_for,
+            'stops_num': self.stops_num
 
         }
 
