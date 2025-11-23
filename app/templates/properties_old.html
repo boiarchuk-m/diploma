@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Оголошення{% endblock %}
+
+{% block content %}
+
+
+<form method="GET" action="/properties">
+
+    <label>Min Price:</label>
+    <input type="number" name="min_price" value="{{ filters.min_price or '' }}">
+
+    <label>Max Price:</label>
+    <input type="number" name="max_price" value="{{ filters.max_price or '' }}">
+
+    <label>Min Area:</label>
+    <input type="number" name="min_area" value="{{ filters.min_area or '' }}">
+
+    <label>Max Area:</label>
+    <input type="number" name="max_area" value="{{ filters.max_area or '' }}">
+
+    <label>District:</label>
+    <select name="districts" multiple>
+        <option value="Шевченківський">Шевченківський</option>
+        <option value="Печерський">Печерський</option>
+        <option value="Подільський">Подільський</option>
+    </select>
+
+    <label>Sort:</label>
+    <select name="sort">
+        <option value="">None</option>
+        <option value="price_asc">Price ↑</option>
+        <option value="price_desc">Price ↓</option>
+        <option value="area">Area</option>
+    </select>
+
+    <button type="submit">Apply Filters</button>
+</form>
+
+<hr>
+
+{% for o in offers %}
+<div class="offer">
+    <h3>{{ o.name }}</h3>
+    <p>Price: {{ o.price }}</p>
+    <p>Area: {{ o.area }}</p>
+    <p>District: {{ o.district }}</p>
+
+    {% if o.photos %}
+        <img src="{{ o.photos[0] }}" width="150">
+    {% endif %}
+</div>
+{% endfor %}
+
+{% endblock %}
