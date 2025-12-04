@@ -3,11 +3,11 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
-#from flask_login import LoginManager
+from flask_login import LoginManager
 
 load_dotenv()
+login_manager = LoginManager()
 
-#login_manager = LoginManager()
 app = Flask(__name__)
 CORS(app)
 app.config['JSON_AS_ASCII'] = False
@@ -19,8 +19,16 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
-#login_manager.init_app(app)
-#login_manager.login_view = 'login'
+
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+from app.models.user import User
+
+@login_manager.user_loader
+def load_user(user_id):
+    # Return the user object for the given user_id
+    return User.query.get(int(user_id))
 
 from app.test import test
 

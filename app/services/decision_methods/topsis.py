@@ -13,7 +13,6 @@ def topsis(matrix, weights, cost_cols=None):
         scores (np.ndarray): Relative closeness to ideal solution.
         ranks (np.ndarray): Ranking indexes (1 = best).
     """
-
     matrix = np.array(matrix, dtype=float)
     weights = np.array(weights, dtype=float)
     n_alternatives, n_criteria = matrix.shape

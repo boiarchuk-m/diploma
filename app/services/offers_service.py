@@ -55,6 +55,9 @@ class OffersService:
             full["rank"] = r["rank"]
             full["score"] = r.get("score")
 
+            full["competitors_count"] = r.get("competitors_count", 0)
+            full["other_businesses_count"] = r.get("other_businesses_count", 0)
+
             result.append(full)
 
         # сортування за рангом

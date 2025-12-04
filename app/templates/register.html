@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Реєстрація{% endblock %}
+
+{% block content %}
+
+ <h2 class="mb-4 regform">Реєстрація</h2>
+
+<form method="post" action="{{ url_for('test.register') }}" novalidate style="max-width: 480px; margin:auto;">
+  <div class="mb-3">
+    <label>Email</label>
+    <input type="email" name="email" class="form-control" required>
+  </div>
+
+  <div class="mb-3">
+    <label>Пароль</label>
+    <input type="password" name="password" class="form-control" required>
+  </div>
+
+  <div class="mb-3">
+    <label>Тип користувача</label><br>
+    <div class="form-check form-check-inline">
+      <input class="form-check-input" type="radio" name="role_type" value="tenant" checked>
+      <label class="form-check-label">Шукаю приміщення</label>
+    </div>
+    <div class="form-check form-check-inline">
+      <input class="form-check-input" type="radio" name="role_type" value="landlord">
+      <label class="form-check-label">Я орендодавець</label>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Зареєструватися</button>
+</form>
+
+{% endblock %}

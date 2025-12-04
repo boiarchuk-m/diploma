@@ -509,3 +509,37 @@ footer {
 .reset-btn:hover {
     background: #e4e6eb;
 }
+
+.regform {
+    text-align: center;
+    color: #333;
+    font-weight: 700;
+}
+
+/* Flash container overlay */
+.flash-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 320px;
+  z-index: 9999; /* поверх всього контенту */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Smooth appearance */
+.flash-alert {
+  animation: fadeInSlide 0.4s ease-out;
+}
+
+@keyframes fadeInSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -5,8 +5,12 @@ from app.models.business_type import Business_type
 from app.models.nearby_business import NearbyBusiness
 from app.models.num_businesses import NumBusinesses
 from app.models.offer_photo import OfferPhoto
+from app.services.auth_service import AuthService
+from app.models.user import User
+from flask_login import login_user, logout_user, login_required
+
 import json
-from flask import Response
+from flask import Response, flash, redirect
 from flask import render_template, request, jsonify, url_for
 import math
 from app.services.ranking_service import RankingService
@@ -76,9 +80,14 @@ def onboarding_submit():
     service = RankingService(user_choice)
     results = service.run()
 
+    ids = [r["id"] for r in results]
+    offer_map = OffersService.get_multiple(ids)
+
+    offers_with_ranks = OffersService.attach_ranking_data(offer_map, results)
+
     #return  jsonify(results)
 
-    return render_template('offers.html', offers=results)
+    return render_template('properties_onb.html', offers=offers_with_ranks)
 
 
 @test.route('/results_page')
@@ -91,6 +100,20 @@ def list_properties():
     offers = OffersService.get_all()
     offers_serialized = OffersService.serialize_multiple(offers)
 
+
+    #filtered = OffersService.filter_offers(offers_serialized, filters)
+    return render_template("properties.html", offers=offers_serialized)
+    #return render_template('properties.html', offers=filtered, filters=filters)
+
+@test.route("/properties/filter", methods=["POST"])
+def filter_properties():
+    """
+    Приймає фільтри через JSON (AJAX)
+    і повертає JSON відповідь.
+    """
+
+    payload = request.get_json() or {}
+
     filters = {
         "min_price": request.args.get("min_price", type=int),
         "max_price": request.args.get("max_price", type=int),
@@ -101,18 +124,6 @@ def list_properties():
         "sort": request.args.get("sort")
     }
 
-    filtered = OffersService.filter_offers(offers_serialized, filters)
-    return render_template('properties.html', offers=filtered, filters=filters)
-
-@test.route("/properties/filter", methods=["POST"])
-def filter_properties_api():
-    """
-    Приймає фільтри через JSON (AJAX)
-    і повертає JSON відповідь.
-    """
-
-    filters = request.get_json() or {}
-
     offers = OffersService.get_all()
     serialized = OffersService.serialize_multiple(offers)
 
@@ -120,6 +131,66 @@ def filter_properties_api():
 
     return jsonify(filtered)
 
+
+@test.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        data = request.form
+        email = data.get('email').strip()
+        password = data.get('password', "")
+        role_type = data.get('role_type', 'tenant')
+        print(role_type)
+
+        if role_type == "landlord":
+            role = User.ROLE_LANDLORD
+        else:
+            role = User.ROLE_TENANT
+
+        try:
+            user = AuthService.register_user(email, password, role)
+        except ValueError as e:
+            flash(str(e), "danger")
+            return render_template("register.html")
+        
+        flash("Реєстрація успішна. Ви увійшли в систему.", "success")
+        login_user(user)
+
+        if user.role == User.ROLE_LANDLORD:
+            return redirect(url_for("users.edit_landlord_profile"))
+        else:
+            print("Redirecting tenant to main page")
+            return redirect(url_for("test.index"))
+
+    return render_template('register.html')
+
+
+@test.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        data = request.form
+        email = data.get('email').strip()
+        password = data.get('password', "")
+
+        user = AuthService.authenticate_user(email, password)
+        if not user:
+            flash("Невірний email або пароль.", "danger")
+            return render_template("login.html", form_data={'email': email})
+        
+        login_user(user)
+        flash("Вхід успішний.", "success")
+
+        return redirect(url_for("test.index"))
+
+
+    return render_template('login.html', form_data={})
+    
+
+@test.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash("Ви вийшли з системи.", "success")
+    return redirect(url_for('test.index'))
 
 
 

@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+
+{% block title %}Оголошення{% endblock %}
+
+{% block content %}
+<div id="app">
+
+  <!-- Loading indicator -->
+  <div v-if="loading">Завантаження...</div>
+
+  <!-- FILTER PANEL -->
+  <div v-else class="filter-panel-full">
+
+
+    <form @submit.prevent="applyFilters" class="filters-grid">
+
+      <div class="filter-group filter-small">
+        <label>Мін. ціна</label>
+        <input type="number" v-model="filters.min_price" placeholder="0">
+      </div>
+
+      <div class="filter-group filter-small">
+        <label>Макс. ціна</label>
+        <input type="number" v-model="filters.max_price" placeholder="100000">
+      </div>
+
+      <div class="filter-group filter-small">
+        <label>Мін. площа</label>
+        <input type="number" v-model="filters.min_area">
+      </div>
+
+      <div class="filter-group filter-small">
+        <label>Макс. площа</label>
+        <input type="number" v-model="filters.max_area">
+      </div>
+
+      <div class="filter-group filter-medium">
+      <label>Тип ремонту</label>
+       <multi-select
+        v-model="filters.repair_types"
+        :options="allRepair"
+        label="Тип ремонту"></multi-select>
+        </div> 
+
+        <div class="filter-group filter-medium">
+      <label>Райони</label>
+      <multi-select
+        v-model="filters.districts"
+        :options="allDistricts"
+        label="Райони"></multi-select>
+        </div>
+
+      <div class="filter-group filter-medium">
+        <label>Сортування</label>
+        <select v-model="filters.sort">
+          <option value="">Без сортування</option>
+          <option value="price_asc">Ціна ↑</option>
+          <option value="price_desc">Ціна ↓</option>
+          <option value="area">Площа</option>
+          <option v-if="offers.length && offers[0].rank" value="rank">Рейтинг (Rank)</option>
+        </select>
+      </div>
+
+      <div class="filter-buttons-row">
+      <button type="submit" class="apply-btn">Застосувати</button>
+      <button type="button" class="reset-btn" @click="resetFilters">Скинути</button>
+        </div>
+    </form>
+  </div>
+
+  <!-- OFFER LIST -->
+  <div class="offers" v-if="!loading">
+    <div v-for="offer in offers" :key="offer.id" class="offer-card">
+
+      <!-- Left: photo -->
+      <div class="thumb-wrap">
+        <img
+          v-if="offer.photos && offer.photos.length"
+          :src="offer.photos[0]"
+          class="offer-photo"
+          :alt="offer.address"
+          loading="lazy"
+        >
+      </div>
+
+      <!-- Right: info -->
+      <div class="offer-info">
+
+        <div class="offer-top">
+          <div>
+            <div class="address">[[ offer.address ]]</div>
+
+            <div class="meta">
+              [[ offer.price.toLocaleString() ]] грн/міс <br>
+              [[ offer.district ]] район &bull; [[ offer.area ]] м²
+            </div>
+
+            <div class="biz-meta">
+              Бізнесів поруч: [[ offer.other_businesses_count ]]<br>
+              Конкурентів: [[ offer.competitors_count ]]
+            </div>
+
+            <!-- Optional rank (if exists) -->
+            <div v-if="offer.rank" class="rank-badge">
+              Ранг: [[ offer.rank ]]
+            </div>
+          </div>
+        </div>
+
+        <div class="tags">
+          <span class="tag" v-for="(t, i) in splitTags(offer.recommended_for)" :key="i">[[ t ]]</span>
+        </div>
+
+        <div class="desc">[[ shorten(offer.description) ]]</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script id="initial-data" type="application/json">
+  {{ offers|tojson }}
+</script>
+
+<script>
+
+    const MultiSelect = {
+  props: ["options", "modelValue", "label"],
+  data() {
+    return {
+      open: false
+    };
+  },
+  methods: {
+    toggle() {
+      this.open = !this.open;
+    },
+    isSelected(value) {
+      return this.modelValue.includes(value);
+    },
+    toggleOption(value) {
+      let updated = [...this.modelValue];
+      if (updated.includes(value)) {
+        updated = updated.filter(i => i !== value);
+      } else {
+        updated.push(value);
+      }
+      this.$emit("update:modelValue", updated);
+    }
+  },
+  template: `
+    <div class="multi-select" @click.stop="">
+      <div class="multi-select-display" @click="toggle">
+        <span v-text="label"></span>
+        <span class="arrow">
+          <span v-if="open">▲</span>
+          <span v-else>▼</span>
+        </span>
+      </div>
+
+      <div class="multi-select-dropdown" v-show="open">
+        <div 
+          v-for="opt in options" 
+          :key="opt" 
+          class="multi-select-option"
+          @click="toggleOption(opt)"
+        >
+          <input type="checkbox" :checked="isSelected(opt)" />
+          <label v-text="opt"></label>
+        </div>
+      </div>
+    </div>
+  `
+};
+
+const app = Vue.createApp({
+  delimiters: ['[[', ']]'],
+
+  data() {
+    return {
+      allOffers: [],   // повний список з бекенду
+      offers: [],      // поточний список для відображення
+      loading: true,
+
+      // All UI filter fields
+      filters: {
+        min_price: null,
+        max_price: null,
+        min_area: null,
+        max_area: null,
+        districts: [],
+        repair_types: [],
+        sort: ""
+      },
+
+      // You can load from DB or hardcode:
+      allDistricts: ["Шевченківський", "Печерський", "Подільський", "Оболонський", "Солом'янський"],
+        allRepair: ["Косметичний", "Євроремонт", "Без ремонту"]
+    };
+  },
+
+  methods: {
+
+    shorten(text) {
+      return text && text.length > 180 ? text.slice(0, 180) + '…' : text;
+    },
+
+    splitTags(tags) {
+      return tags ? tags.split(',').map(t => t.trim()) : [];
+    },
+
+    applyFilters() {
+      const f = this.filters;
+      const toNum = (v) =>
+        v !== null && v !== "" ? Number(v) : null;
+
+      const minPrice = toNum(f.min_price);
+      const maxPrice = toNum(f.max_price);
+      const minArea  = toNum(f.min_area);
+      const maxArea  = toNum(f.max_area);
+
+      let result = [...this.allOffers];
+
+      // Ціна
+      if (minPrice !== null && !Number.isNaN(minPrice)) {
+        result = result.filter(o => o.price >= minPrice);
+      }
+      if (maxPrice !== null && !Number.isNaN(maxPrice)) {
+        result = result.filter(o => o.price <= maxPrice);
+      }
+
+      // Площа
+      if (minArea !== null && !Number.isNaN(minArea)) {
+        result = result.filter(o => o.area >= minArea);
+      }
+      if (maxArea !== null && !Number.isNaN(maxArea)) {
+        result = result.filter(o => o.area <= maxArea);
+      }
+
+      // Райони (мультивибір)
+      if (f.districts && f.districts.length) {
+        result = result.filter(o => f.districts.includes(o.district));
+      }
+
+      // Тип ремонту
+      if (f.repair_types && f.repair_types.length) {
+        // припускаю, що в даних поле називається "repair"
+        result = result.filter(o => f.repair_types.includes(o.repair));
+      }
+
+      // Сортування
+      if (f.sort === "price_asc") {
+        result.sort((a, b) => a.price - b.price);
+      } else if (f.sort === "price_desc") {
+        result.sort((a, b) => b.price - a.price);
+      } else if (f.sort === "area") {
+        result.sort((a, b) => a.area - b.area);
+      } else if (f.sort === "rank") {
+        // для відранжованих результатів
+        result.sort((a, b) => (a.rank || 999) - (b.rank || 999));
+      }
+
+      this.offers = result;
+    },
+
+    resetFilters() {
+    this.filters = {
+        min_price: null,
+        max_price: null,
+        min_area: null,
+        max_area: null,
+        districts: [],
+        repair_types: [],
+        sort: ""
+    };
+
+     this.offers = [...this.allOffers];
+}
+
+  },
+
+  
+  mounted() {
+    try {
+      const raw = document.getElementById("initial-data").textContent || "[]";
+      const parsed = JSON.parse(raw);
+      this.allOffers = parsed;
+      this.offers = parsed;
+    } catch (e) {
+      console.error("Failed to parse initial offers:", e);
+      this.loadAllOffers(); // fallback
+      this.allOffers = [];
+      this.offers = [];
+    } finally {
+      this.loading = false;
+    }
+  }
+});
+
+app.component("multi-select", MultiSelect);
+app.mount("#app");
+</script>
+{% endblock %}

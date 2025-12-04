@@ -27,21 +27,105 @@
           <a class="nav-link {% if request.endpoint == 'test.index' %}active{% endif %}" href="{{ url_for('test.index') }}">Головна</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == '#' %}active{% endif %}" href="#">Оголошення</a>
+          <a class="nav-link {% if request.endpoint == 'test.list_properties' %}active{% endif %}" href="{{ url_for('test.list_properties') }}">Оголошення</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="/about">Про нас</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/contact">Контакти</a>
-        </li>
-        <li class="nav-item">
-          <a class="btn btn-light ms-3 px-3" href="/onboarding">Підібрати приміщення</a>
-        </li>
-      </ul>
-    </div>
-  </div>
-</nav>
+              <a class="nav-link {% if request.endpoint == 'test.onboarding' %}active{% endif %}"
+                 href="{{ url_for('test.onboarding') }}">
+                Підібрати приміщення
+              </a>
+            </li>
+          </ul>
+
+
+        <!-- Права частина: акаунт / логін / реєстрація -->
+          <ul class="navbar-nav ms-auto align-items-center">
+
+            {% if current_user.is_authenticated %}
+              <!-- Якщо користувач увійшов -->
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle"
+                   href="#"
+                   id="accountDropdown"
+                   role="button"
+                   data-bs-toggle="dropdown"
+                   aria-expanded="false">
+                  {{ current_user.full_name or current_user.email }}
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end"
+                    aria-labelledby="accountDropdown">
+                  <li>
+                    <a class="dropdown-item"
+                       href="#">
+                      Мій профіль
+                    </a>
+                  </li>
+
+                     <!-- Якщо tenant – показуємо "Збережені оголошення" -->
+                   {% if current_user.role == 'tenant' %}
+                  <li>
+                    <a class="dropdown-item"
+                       href="#">
+                      Збережені оголошення
+                    </a>
+                  </li>
+                  {% endif %}
+
+                  <!-- Якщо landlord – показуємо "Мої оголошення" -->
+                  {% if current_user.role == 'landlord' %}
+                    <li>
+                      <a class="dropdown-item"
+                        href="#">
+                        Мої оголошення
+                      </a>
+                    </li>
+                  {% endif %}
+
+
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <a class="dropdown-item text-danger"
+                       href="{{ url_for('test.logout') }}">
+                      Вийти
+                    </a>
+                  </li>
+                </ul>
+              </li>
+
+            {% else %}
+              <!-- Якщо користувач НЕ увійшов -->
+              <li class="nav-item">
+                <a class="nav-link"
+                   href="{{ url_for('test.login') }}">
+                  Увійти
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="btn btn-light ms-2 px-3"
+                   href="{{ url_for('test.register') }}">
+                  Реєстрація
+                </a>
+              </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+
+    <div id="flash-container" class="flash-container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, msg in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show flash-alert" role="alert">
+          {{ msg }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+</div>
+
+
 
     <!-- Vue App Container -->
     <div id="app" class="container-fluid py-4">
@@ -55,6 +139,26 @@
     <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
 
     <!-- Custom JS -->
-    {% block scripts %}{% endblock %}
+    {% block scripts %}
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const alerts = document.querySelectorAll(".flash-alert");
+
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            alert.classList.add("fade");
+            alert.classList.remove("show");
+        }, 3000);
+
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.parentNode.removeChild(alert);
+            }
+        }, 4000);
+    });
+});
+</script>
+    
+    {% endblock %}
 </body>
 </html>

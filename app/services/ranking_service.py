@@ -104,7 +104,10 @@ class RankingService:
                 "price": o.price,
                 "stops": o.stops_num,
                 "competitors": comp,
-                "otherbiz": otherbiz
+                "otherbiz": otherbiz,
+
+                "competitors_count": comp,
+                "other_businesses_count": otherbiz
             })
         return rows
     
@@ -112,7 +115,6 @@ class RankingService:
         
         matrix = [[row[c] for c in self.criteria_cols] for row in self.matrix_rows]
         weights_vector = [self.weights[c] for c in self.criteria_cols]
-
         cost_idx = [
             self.criteria_cols.index(col)
             for col in self.cost_cols
@@ -161,8 +163,25 @@ class RankingService:
         self.offers = self.get_offers()
         self.matrix_rows = self.build_matrix()
         self.matrix_rows = self.run_topsis()
-        print("Final matrix rows with scores and ranks:", self.matrix_rows)
-        return self.prepare_output()
+        
+
+        results = []
+        for row in self.matrix_rows:
+            results.append({
+                "id": row["alternative"],
+                "rank": row["Rank"],
+                "score": row["Score"],
+
+                "competitors_count": row["competitors_count"],
+                "other_businesses_count": row["other_businesses_count"]
+            })
+            
+        # за замовчуванням відсортуємо по рангу
+        results.sort(key=lambda x: x["rank"])
+        print(results)
+
+        #return self.prepare_output()
+        return results
 
 
 
