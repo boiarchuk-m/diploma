@@ -54,15 +54,16 @@
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end"
                     aria-labelledby="accountDropdown">
-                  <li>
-                    <a class="dropdown-item"
-                       href="#">
-                      Мій профіль
-                    </a>
-                  </li>
 
                      <!-- Якщо tenant – показуємо "Збережені оголошення" -->
                    {% if current_user.role == 'tenant' %}
+                   <li>
+                    <a class="dropdown-item"
+                       href="{{ url_for('test.change_password') }}">
+                      Змінити пароль
+                    </a>
+                  </li>
+
                   <li>
                     <a class="dropdown-item"
                        href="#">
@@ -73,6 +74,13 @@
 
                   <!-- Якщо landlord – показуємо "Мої оголошення" -->
                   {% if current_user.role == 'landlord' %}
+                     <li>
+                    <a class="dropdown-item"
+                       href="{{ url_for('test.profile_view') }}">
+                      Мій профіль
+                    </a>
+                  </li>
+
                     <li>
                       <a class="dropdown-item"
                         href="#">

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Мій профіль{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <h2 class="mb-4">Мій профіль</h2>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <p><strong>Імʼя:</strong> {{ user.first_name or "—" }}</p>
+        <p><strong>Прізвище:</strong> {{ user.last_name or "—" }}</p>
+        <p><strong>Телефон:</strong> {{ user.phone_number or "—" }}</p>
+        <p><strong>Компанія:</strong> {{ user.company_name or "—" }}</p>
+
+        <p><strong>Звʼязок:</strong>
+          {% set has_any = false %}
+          {% if user.contact_telegram %}
+            {% set has_any = true %}
+            Telegram
+          {% endif %}
+          {% if user.contact_viber %}
+            {% if has_any %}, {% endif %}
+            {% set has_any = true %}
+            Viber
+          {% endif %}
+          {% if user.contact_whatsapp %}
+            {% if has_any %}, {% endif %}
+            {% set has_any = true %}
+            WhatsApp
+          {% endif %}
+          {% if not has_any %}
+            не вказано
+          {% endif %}
+        </p>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('test.edit_profile') }}" class="btn btn-primary">
+        Редагувати профіль
+      </a>
+      <a href="{{ url_for('test.change_password') }}" class="btn btn-outline-secondary">
+        Змінити пароль
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

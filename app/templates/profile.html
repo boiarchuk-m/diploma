@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Мій профіль{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <h2 class="mb-4">Мій профіль</h2>
+
+    <form method="post" action="{{ url_for('test.edit_profile') }}">
+      <div class="mb-3">
+        <label class="form-label">Імʼя</label>
+        <input type="text" name="first_name" class="form-control"
+               value="{{ user.first_name or '' }}">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Прізвище</label>
+        <input type="text" name="last_name" class="form-control"
+               value="{{ user.last_name or '' }}">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Телефон</label>
+        <input type="text" name="phone_number" class="form-control"
+               value="{{ user.phone_number or '' }}">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Компанія (необовʼязково)</label>
+        <input type="text" name="company_name" class="form-control"
+               value="{{ user.company_name or '' }}">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label d-block">Зручні способи звʼязку</label>
+
+        <div class="form-check form-check-inline">
+          <input class="form-check-input"
+                 type="checkbox"
+                 name="contact_telegram"
+                 id="contact_telegram"
+                 {% if user.contact_telegram %}checked{% endif %}>
+          <label class="form-check-label" for="contact_telegram">Telegram</label>
+        </div>
+
+        <div class="form-check form-check-inline">
+          <input class="form-check-input"
+                 type="checkbox"
+                 name="contact_viber"
+                 id="contact_viber"
+                 {% if user.contact_viber %}checked{% endif %}>
+          <label class="form-check-label" for="contact_viber">Viber</label>
+        </div>
+
+        <div class="form-check form-check-inline">
+          <input class="form-check-input"
+                 type="checkbox"
+                 name="contact_whatsapp"
+                 id="contact_whatsapp"
+                 {% if user.contact_whatsapp %}checked{% endif %}>
+          <label class="form-check-label" for="contact_whatsapp">WhatsApp</label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary">
+        Зберегти
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
