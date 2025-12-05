@@ -3,11 +3,11 @@
 {% block title %}Onboarding - Commercial Listings{% endblock %}
 
 {% block content %}
-<div id="onboarding" class="container py-5">
+<div id="onboarding" class="container py-3">
 
   <!-- Step 1: Categories -->
   <div v-if="step === 1" class="text-center">
-    <h2 class="mb-4">Який тип приміщення вас цікавить?</h2>
+    <h2 class="mb-3">Який тип приміщення вас цікавить?</h2>
     <div class="row justify-content-center g-4">
       <div class="col-md-4" v-for="category in categories" :key="category.id">
         <button class="onboarding-option w-100" @click="selectType(category)">
@@ -86,7 +86,7 @@
     </div>
 
     <!-- "Not important" -->
-    <div class="col-md-4">
+    <div class="col-md-3">
       <button
         class="onboarding-option w-100"
         :class="{ active: notImportant }"

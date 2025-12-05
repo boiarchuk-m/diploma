@@ -14,6 +14,9 @@ class CommLeasing(db.Model):
     city =db.Column(db.String(100))
     recommended_for = db.Column(db.String(255))
     stops_num = db.Column(db.Integer, nullable=True)
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    owner = db.relationship('User', backref=db.backref('commercial_listings', lazy=True))
 
     def serialize(self):
         return {
@@ -26,7 +29,8 @@ class CommLeasing(db.Model):
             'repair': self.repair,
             'city': self.city,
             'recommended_for': self.recommended_for,
-            'stops_num': self.stops_num
+            'stops_num': self.stops_num,
+            'owner_id': self.owner_id 
 
         }
 

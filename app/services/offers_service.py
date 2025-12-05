@@ -2,6 +2,8 @@ from flask  import url_for
 from app import db
 from app.models.comm_leasing import CommLeasing
 from app.models.offer_photo import OfferPhoto
+from app.models.recommended_business import RecommendedBusiness
+import re
 
 
 class OffersService:
@@ -32,6 +34,30 @@ class OffersService:
             url_for("static", filename=p.photo_url.replace("\\", "/").lstrip("/"))
             for p in photos
         ]
+
+        businesses  = RecommendedBusiness.query.filter_by(listing_id=offer.id).all()
+
+        business_types = [rb.business_type.business_type for rb in businesses]
+        data["recommended_types"] = business_types if business_types else []
+        owner = offer.owner
+        if owner:
+            phone = owner.phone_number or ""
+            phone_clean = re.sub(r"\D+", "", phone) if phone else ""
+
+            data["owner"] = {
+                "id": owner.id,
+                "first_name": owner.first_name,
+                "last_name": owner.last_name,
+                "email": owner.email,
+                "phone": phone,
+                "phone_clean": phone_clean,
+                "company_name": owner.company_name,
+                "contact_telegram": owner.contact_telegram,
+                "contact_viber": owner.contact_viber,
+                "contact_whatsapp": owner.contact_whatsapp,
+            }
+        else:
+            data["owner"] = None
         return data
     
     @staticmethod

@@ -53,16 +53,7 @@ body {
     border-color: #084298;
 }
 
-/* Category Cards */
-.card {
-    border: none;
-    border-radius: 12px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-}
+
 .card-title {
     font-size: 1.2rem;
     font-weight: bold;
@@ -103,17 +94,6 @@ footer {
 
 .hero p {
   font-size: 1.25rem;
-}
-
-/* Карточки */
-.card {
-  border-radius: 16px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 /* Кнопки */
@@ -285,6 +265,14 @@ footer {
       font-weight: bold;
       font-size: 18px;
     }
+
+    .address a {
+    color: #2c3e50;
+      font-weight: bold;
+      font-size: 18px;
+      text-decoration: none;
+  }
+
 
     .meta {
       color: #666;
@@ -543,3 +531,98 @@ footer {
     transform: translateY(0);
   }
 }
+
+
+.property-page {
+  margin-top: 5px;
+}
+
+/* Вимикаємо сильний hover ефект для карток на сторінці оголошення */
+.property-page .no-hover-card {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  transform: none;
+  transition: box-shadow 0.2s ease;
+}
+
+.property-page .no-hover-card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  transform: none;
+}
+
+/* Головне фото */
+.property-main-photo {
+  width: 100%;
+  max-height: 380px;
+  object-fit: cover;
+  border-radius: 7px;
+}
+
+/* Обгортка головного фото для позиціонування кнопок */
+.main-photo-wrapper {
+  position: relative;
+}
+
+/* Кнопки навігації по фото */
+.photo-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  width: 32px;
+  height: 56px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-nav.prev {
+  left: 10px;
+}
+
+.photo-nav.next {
+  right: 10px;
+}
+
+.photo-nav:hover {
+  background: rgba(0,0,0,0.7);
+}
+
+/* Кнопка повноекранного режиму */
+.fullscreen-btn {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  font-size: 0.8rem;
+}
+
+/* Превʼюшки */
+.property-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.property-thumb {
+  width: 130px;
+  height: 95px;
+  object-fit: cover;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.property-thumb.active-thumb {
+  border: 2px solid #0d6efd;
+}
+
+.close-fullscreen {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1056; /* вище за carousel controls і фон */
+}
+

@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}Оголошення #{{ offer.id }}{% endblock %}
+
+{% block content %}
+<div class="property-page">
+  <div class="row g-0 justify-content-center">
+    <div class="col-lg-11">
+
+        <!-- ======= КНОПКИ НАВЕРХУ ======= -->
+      <div class="d-flex justify-content-between align-items-center mb-2">
+
+        <!-- Кнопка Назад -->
+        <button class="btn btn-outline-secondary" onclick="window.history.back()">
+          ← Назад
+        </button>
+
+        <!-- Кнопка Зберегти -->
+        {% if current_user.is_authenticated %}
+
+          <button class="btn btn-primary"> Зберегти</button>
+        </form>
+        {% else %}
+        <a href="{{ url_for('test.login') }}" class="btn btn-primary">
+           Увійти, щоб зберегти
+        </a>
+        {% endif %}
+
+      </div>
+      <!-- ======= КІНЕЦЬ КНОПОК ======= -->
+
+
+
+      <div class="row g-3 mb-3">
+        <!-- ЛІВА ЧАСТИНА: ФОТО + ГАЛЕРЕЯ -->
+        <div class="col-lg-7">
+
+          <!-- Головне фото з навігацією -->
+          <div class="card mb-2 no-hover-card">
+            <div class="card-body">
+              {% if offer.photos and offer.photos|length > 0 %}
+                <div class="main-photo-wrapper">
+                  <img id="main-photo"
+                       src="{{ offer.photos[0] }}"
+                       data-index="0"
+                       class="img-fluid property-main-photo"
+                       alt="{{ offer.address }}">
+
+                  <!-- стрілки -->
+                  <button type="button"
+                          class="photo-nav prev"
+                          aria-label="Попереднє фото">
+                    ‹
+                  </button>
+                  <button type="button"
+                          class="photo-nav next"
+                          aria-label="Наступне фото">
+                    ›
+                  </button>
+
+                  <!-- кнопка повноекранного перегляду -->
+                  <button type="button"
+                          class="btn btn-sm btn-light fullscreen-btn"
+                          data-open-fullscreen="1">
+                    На весь екран
+                  </button>
+                </div>
+              {% else %}
+                <div class="d-flex align-items-center justify-content-center bg-light"
+                     style="height: 300px;">
+                  <span class="text-muted">Немає фото</span>
+                </div>
+              {% endif %}
+           
+
+            
+          <!-- Превʼюшки -->
+          {% if offer.photos and offer.photos|length > 1 %}
+                <div class="property-thumbs mt-2">
+                  {% for photo in offer.photos %}
+                    <img src="{{ photo }}"
+                         class="img-thumbnail property-thumb thumb-img {% if loop.index0 == 0 %}active-thumb{% endif %}"
+                         data-index="{{ loop.index0 }}"
+                         alt="Фото приміщення">
+                  {% endfor %}
+                </div>
+              
+          {% endif %}
+          </div>
+            </div>
+
+            
+            <!-- Опис -->
+          {% if offer.description %}
+          <div class="card mb-2 no-hover-card">
+            <div class="card-body">
+              <h5 class="card-title">Опис приміщення</h5>
+              <p class="card-text">{{ offer.description }}</p>
+            </div>
+          </div>
+          {% endif %}
+        
+        
+          
+
+        </div>
+
+        <!-- ПРАВА ЧАСТИНА: ІНФО ПРО ОБʼЄКТ + КОНТАКТИ -->
+        <div class="col-lg-5">
+
+          <!-- Інформація про обʼєкт -->
+          <div class="card mb-3 no-hover-card">
+            <div class="card-body">
+            <h3 class="card-title mb-2">Інформація про об'єкт</h3>
+              <h4 class="card-title mb-2">{{ offer.address }}</h4>
+              <p class="mb-1"><strong>Район:</strong> {{ offer.district }}</p>
+              <p class="mb-1"><strong>Площа:</strong> {{ offer.area }} м²</p>
+              <p class="mb-1"><strong>Ціна:</strong> {{ offer.price }} грн/міс</p>
+              {% if offer.repair %}
+                <p class="mb-1"><strong>Ремонт:</strong> {{ offer.repair }}</p>
+              {% endif %}
+              {% if offer.stops_num is not none %}
+                <p class="mb-1"><strong>Зупинки поруч:</strong> {{ offer.stops_num }}</p>
+              {% endif %}
+              {% if offer.ranking %}
+                <p class="mb-1">
+                  <strong>Ранг рекомендації: </strong> {{ offer.ranking }}
+                </p>
+              {% endif %}
+
+              {% if offer.competitors_count %}
+                <p class="mb-1">
+                    <strong>Конкуренти цього типу бізнесу поблизу:</strong> {{ offer.competitors_count }}
+                </p>
+                {% endif %}
+
+                {% if offer.other_businesses_count %}
+                <p class="mb-1">
+                    <strong>Інші бізнеси поруч:</strong> {{ offer.other_businesses_count }}
+                </p>
+                {% endif %}
+            </div>
+          </div>
+
+          <!-- рекомендовані бізнеси-->
+             <div class="card mb-3 no-hover-card">
+            <div class="card-body">
+              <h4 class="card-title mb-2">Рекомендовано для</h4>
+
+                {% if offer.recommended_types and offer.recommended_types|length > 0 %}
+                    <div class="tags">
+                    {% for t in offer.recommended_types %}
+                        
+                        <span class="tag">
+                            <p class="mb-1">{{ t }}</p>
+                            </span><br>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Немає рекомендацій</p>
+                {% endif %}
+                    </div>
+          </div>
+
+         
+
+
+
+          <!-- Контакти орендодавця -->
+          <div class="card no-hover-card">
+            <div class="card-body">
+              <h5 class="card-title mb-3">Контакти орендодавця</h5>
+              {% if offer.owner %}
+                <p class="mb-1">
+                  <strong>Імʼя:</strong>
+                  {{ offer.owner.first_name }} {{ offer.owner.last_name }}
+                </p>
+
+                {% if offer.owner.company_name %}
+                  <p class="mb-1">
+                    <strong>Компанія:</strong> {{ offer.owner.company_name }}
+                  </p>
+                {% endif %}
+
+                {% if offer.owner.phone %}
+                  <p class="mb-3">
+                    <strong>Телефон:</strong>
+                    <a href="tel:{{ offer.owner.phone }}">{{ offer.owner.phone }}</a>
+                  </p>
+                {% endif %}
+
+                <div class="d-flex flex-wrap gap-2">
+                  {% if offer.owner.phone %}
+                    <a href="tel:{{ offer.owner.phone }}"
+                       class="btn btn-outline-primary btn-sm">
+                      Подзвонити
+                    </a>
+                  {% endif %}
+
+                  {% if offer.owner.contact_telegram and offer.owner.phone_clean %}
+                    <a href="https://t.me/+{{ offer.owner.phone_clean }}"
+                       target="_blank"
+                       class="btn btn-outline-info btn-sm">
+                      Telegram
+                    </a>
+                  {% endif %}
+
+                  {% if offer.owner.contact_viber and offer.owner.phone_clean %}
+                    <a href="viber://chat?number=%2B{{ offer.owner.phone_clean }}"
+                       class="btn btn-outline-secondary btn-sm">
+                      Viber
+                    </a>
+                  {% endif %}
+
+                  {% if offer.owner.contact_whatsapp and offer.owner.phone_clean %}
+                    <a href="https://wa.me/{{ offer.owner.phone_clean }}"
+                       target="_blank"
+                       class="btn btn-outline-success btn-sm">
+                      WhatsApp
+                    </a>
+                  {% endif %}
+                </div>
+
+                {% if not (offer.owner.contact_telegram or offer.owner.contact_viber or offer.owner.contact_whatsapp) %}
+                  <p class="mt-2 text-muted">
+                    Орендодавець не вказав месенджери, доступний лише телефон.
+                  </p>
+                {% endif %}
+
+              {% else %}
+                <p class="text-muted mb-0">
+                  Контакти власника недоступні.
+                </p>
+              {% endif %}
+            </div>
+          </div>
+
+      </div>
+</div>
+    </div>
+  </div>
+</div>
+
+<!-- МОДАЛКА ДЛЯ ПОВНОЕКРАННОГО ПЕРЕГЛЯДУ -->
+<div class="modal fade" id="photosModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content bg-dark">
+      <div class="modal-body p-0">
+        <button type="button"
+                class="btn-close btn-close-white close-fullscreen"
+                data-bs-dismiss="modal"
+                aria-label="Close"></button>
+
+        <div id="photosCarousel" class="carousel slide" data-bs-ride="false">
+          <div class="carousel-inner">
+            {% for photo in offer.photos %}
+              <div class="carousel-item {% if loop.index0 == 0 %}active{% endif %}">
+                <img src="{{ photo }}"
+                     class="d-block w-100"
+                     style="max-height: 90vh; object-fit: contain;"
+                     alt="Фото приміщення">
+              </div>
+            {% endfor %}
+          </div>
+
+          {% if offer.photos|length > 1 %}
+            <button class="carousel-control-prev" type="button" data-bs-target="#photosCarousel" data-bs-slide="prev">
+              <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#photosCarousel" data-bs-slide="next">
+              <span class="carousel-control-next-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Next</span>
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const mainPhoto = document.getElementById("main-photo");
+  const thumbs = Array.from(document.querySelectorAll(".thumb-img"));
+  const prevBtn = document.querySelector(".photo-nav.prev");
+  const nextBtn = document.querySelector(".photo-nav.next");
+  const fullscreenTriggers = document.querySelectorAll("[data-open-fullscreen]");
+  const modalEl = document.getElementById("photosModal");
+  const carouselEl = document.getElementById("photosCarousel");
+
+  const closeBtns = document.querySelectorAll(".close-fullscreen");
+    closeBtns.forEach(btn => {
+    btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    });
+    });
+
+  let currentIndex = 0;
+
+  function showPhoto(idx) {
+    if (!thumbs.length || !mainPhoto) return;
+
+    if (idx < 0) idx = thumbs.length - 1;
+    if (idx >= thumbs.length) idx = 0;
+    currentIndex = idx;
+
+    const src = thumbs[idx].getAttribute("src");
+    mainPhoto.setAttribute("src", src);
+    mainPhoto.dataset.index = String(idx);
+
+    thumbs.forEach((img, i) => {
+      img.classList.toggle("active-thumb", i === idx);
+    });
+  }
+
+  thumbs.forEach((img, idx) => {
+    img.addEventListener("click", () => showPhoto(idx));
+  });
+
+  if (prevBtn) {
+    prevBtn.addEventListener("click", () => showPhoto(currentIndex - 1));
+  }
+  if (nextBtn) {
+    nextBtn.addEventListener("click", () => showPhoto(currentIndex + 1));
+  }
+
+  // Повноекранний перегляд (модалка + карусель)
+  if (modalEl && carouselEl) {
+    const carousel = new bootstrap.Carousel(carouselEl, {
+      interval: false,
+      ride: false
+    });
+
+    fullscreenTriggers.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+
+        // перейти до того ж фото, що і в основному вікні
+        carousel.to(currentIndex);
+      });
+    });
+  }
+});
+</script>
+{% endblock %}

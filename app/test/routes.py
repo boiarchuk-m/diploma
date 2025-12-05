@@ -12,7 +12,7 @@ from app.services.users_service import UsersService
 from app.utils.decorators import roles_required
 
 import json
-from flask import Response, flash, redirect
+from flask import Response, flash, redirect, session
 from flask import render_template, request, jsonify, url_for
 import math
 from app.services.ranking_service import RankingService
@@ -87,14 +87,47 @@ def onboarding_submit():
 
     offers_with_ranks = OffersService.attach_ranking_data(offer_map, results)
 
-    #return  jsonify(results)
+    session["ranking_results"] = {
+        row["alternative"]: {
+            "rank"  : row.get("Rank"),
+            "competitors_count": row.get("competitors_count"),
+            "other_businesses_count": row.get("other_businesses_count")
+        }
+        for row in service.matrix_rows
+    }
 
-    return render_template('properties_onb.html', offers=offers_with_ranks)
+    session["rakning_offers_ids"] = ids
 
 
-@test.route('/results_page')
-def results_page():
-    return render_template('offers.html')
+    #return render_template('properties_onb.html', offers=offers_with_ranks)
+    return redirect(url_for('test.list_ranked_properties'))
+
+
+@test.route('/properties/ranked', methods=['GET'])
+def list_ranked_properties():
+    offer_ids = session.get("rakning_offers_ids", [])
+    ranking_results = session.get("ranking_results", {})
+
+    if not offer_ids:
+        offers = OffersService.serialize_multiple(OffersService.get_all())
+        return render_template("properties.html", offers=offers)
+    
+    offers_map = OffersService.get_multiple(offer_ids)
+    offers_for_view = []
+    for oid in offer_ids:
+        offer = offers_map.get(oid)
+        if not offer:
+            continue
+        serialized = OffersService.serialize_offer(offer)
+        extra = ranking_results.get(str(oid))
+        if extra:
+            serialized["rank"] = extra.get("rank")
+            print("Rank for offer", oid, "is", serialized["rank"])
+            serialized["competitors_count"] = extra.get("competitors_count")
+            serialized["other_businesses_count"] = extra.get("other_businesses_count")
+        offers_for_view.append(serialized)
+    offers_for_view.sort(key=lambda x: x.get("rank", math.inf))
+    return render_template('properties_onb.html', offers=offers_for_view)
 
 
 @test.route('/properties', methods=['GET'])
@@ -265,6 +298,25 @@ def change_role():
 
     flash("Роль успішно змінена.", "success")
     return redirect(url_for('test.index'))
+
+
+@test.route('/property/<int:offer_id>', methods=['GET'])
+def property_detail(offer_id):
+    offer = OffersService.get_by_id(offer_id)
+    if not offer:
+        flash("Оголошення не знайдено.", "danger")
+        return redirect(url_for('test.list_properties'))
+
+    offer_serialized = OffersService.serialize_offer(offer)
+
+    ranking_results = session.get("ranking_results", {})
+    extra = ranking_results.get(str(offer_id))
+    if extra:
+        offer_serialized["ranking"] = extra.get("rank")
+        offer_serialized["competitors_count"] = extra.get("competitors_count")
+        offer_serialized["other_businesses_count"] = extra.get("other_businesses_count")
+    
+    return render_template('property_detail.html', offer=offer_serialized)
 
        
 

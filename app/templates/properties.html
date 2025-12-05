@@ -88,7 +88,8 @@
 
         <div class="offer-top">
           <div>
-            <div class="address">[[ offer.address ]]</div>
+            <div  class="address">
+              <a :href="`/property/${offer.id}`"> [[ offer.address ]] </a></div>
 
             <div class="meta">
               [[ offer.price.toLocaleString() ]] грн/міс <br>
@@ -103,7 +104,8 @@
         </div>
 
         <div class="tags">
-          <span class="tag" v-for="(t, i) in splitTags(offer.recommended_for)" :key="i">[[ t ]]</span>
+          <span class="tag" v-for="(t, i) in offer.recommended_types" :key="i">[[ t ]]</span>
+         <!-- <span class="tag" v-for="(t, i) in splitTags(offer.recommended_for)" :key="i">[[ t ]]</span> -->
         </div>
 
         <div class="desc">[[ shorten(offer.description) ]]</div>
