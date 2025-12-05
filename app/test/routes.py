@@ -1,4 +1,5 @@
 from app import db
+import os
 from app.test import test
 from app.models.comm_leasing import CommLeasing
 from app.models.business_type import Business_type
@@ -10,9 +11,10 @@ from app.models.user import User
 from flask_login import login_user, logout_user, login_required, current_user
 from app.services.users_service import UsersService
 from app.utils.decorators import roles_required
+from app.utils.files import allowed_file, unique_filename
 
 import json
-from flask import Response, flash, redirect, session
+from flask import Response, flash, redirect, session, current_app
 from flask import render_template, request, jsonify, url_for
 import math
 from app.services.ranking_service import RankingService
@@ -317,6 +319,116 @@ def property_detail(offer_id):
         offer_serialized["other_businesses_count"] = extra.get("other_businesses_count")
     
     return render_template('property_detail.html', offer=offer_serialized)
+
+
+
+@test.route('/property/create', methods=['GET', 'POST'])
+@roles_required(User.ROLE_LANDLORD)
+def create_property():
+
+    if request.method == 'POST':
+        address=request.form.get('address') or ""
+        district = request.form.get('district') or ""
+        city = request.form.get('city') or ""
+        price = request.form.get('price')
+        area = request.form.get('area')
+        description = request.form.get('description') or ""
+        repair = request.form.get('repair') or "" 
+        if not address or not district or not price or not area:
+            flash("Будь ласка, заповніть обовʼязкові поля", "danger")
+            return render_template("property_form.html", offer=None)
+        
+        print(price)
+        try:
+            data = {
+                "address": address,
+                "district": district,
+                "city": city,
+                "price": int(price),
+                "area": float(area),
+                "description": description,
+                "repair": repair,
+            }
+            offer = OffersService.create_offer(data, owner_id=current_user.id)
+
+            # --- робота з фото ---
+            files = request.files.getlist("photos")
+            saved_any = False
+
+            for idx, file in enumerate(files):
+                if not file or file.filename == "":
+                    continue
+                if not allowed_file(file.filename):
+                    continue
+
+                filename = unique_filename(file.filename)
+                upload_folder = current_app.config["UPLOAD_FOLDER"]
+                file_path = os.path.join(upload_folder, filename)
+                file.save(file_path)
+
+                # шлях, який будемо зберігати в БД (відносно static)
+                relative_path = os.path.join("photos", filename).replace("\\", "/")
+
+                photo = OfferPhoto(
+                    offer_id=offer.id,
+                    photo_url=relative_path,
+                    is_primary=(idx == 0)
+                )
+                db.session.add(photo)
+                saved_any = True
+
+            db.session.commit()
+
+            flash("Оголошення успішно створено", "success")
+            return redirect(url_for("test.property_detail", offer_id=offer.id))
+
+        except ValueError:
+            flash("Невірний формат числових полів", "danger")
+
+
+    return render_template('property_form.html', offer=None)
+
+
+@test.route('/property/<int:offer_id>/edit', methods=['GET', 'POST'])
+@roles_required(User.ROLE_LANDLORD)
+def edit_property(offer_id):
+    offer = OffersService.get_by_id(offer_id)
+    if not offer:
+        flash("Оголошення не знайдено.", "danger")
+        return redirect(url_for('test.list_properties'))
+
+    if offer.owner_id != current_user.id:
+        if current_user.role != User.ROLE_ADMIN:
+            flash("Ви не маєте прав на редагування цього оголошення.", "danger")
+            return redirect(url_for('test.property_detail', offer_id=offer_id))
+
+    if request.method == 'POST':
+        address=request.form.get('address') or "",
+        district = request.form.get('district') or "",
+        city = request.form.get('city') or "",
+        price = request.form.get('price'),
+        area = request.form.get('area'),
+        description = request.form.get('description') or "",
+        repair = request.form.get('repair') or "" 
+
+        try:
+            data = {
+                "address": address,
+                "district": district,
+                "city": city,
+                "price": int(price),
+                "area": float(area),
+                "description": description,
+                "repair": repair,
+            }
+            offer = OffersService.update_offer(offer, data)
+            flash("Оголошення успішно оновлено", "success")
+            return redirect(url_for("test.property_detail", offer_id=offer.id))
+        except ValueError:
+            flash("Невірний формат числових полів", "danger")
+
+
+    return render_template('property_form.html', offer=offer)
 
        
 

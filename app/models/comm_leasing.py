@@ -12,9 +12,10 @@ class CommLeasing(db.Model):
     description = db.Column(db.Text)
     repair = db.Column(db.String(50))
     city =db.Column(db.String(100))
-    recommended_for = db.Column(db.String(255))
+    recommended_for = db.Column(db.String(255), nullable=True)
     stops_num = db.Column(db.Integer, nullable=True)
     owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    approved = db.Column(db.Boolean, default=False)
 
     owner = db.relationship('User', backref=db.backref('commercial_listings', lazy=True))
 
@@ -30,7 +31,8 @@ class CommLeasing(db.Model):
             'city': self.city,
             'recommended_for': self.recommended_for,
             'stops_num': self.stops_num,
-            'owner_id': self.owner_id 
+            'owner_id': self.owner_id,
+            'approved': self.approved
 
         }
 

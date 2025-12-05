@@ -135,7 +135,7 @@ class OffersService:
     # CRUD operations 
 
     @staticmethod
-    def create_offer(data: dict) -> CommLeasing:
+    def create_offer(data: dict, owner_id: int |None = None) -> CommLeasing:
         """Створює нове оголошення."""
         offer = CommLeasing(
             address=data["address"],
@@ -146,7 +146,8 @@ class OffersService:
             repair=data.get("repair"),
             city=data.get("city"),
             recommended_for=data.get("recommended_for"),
-            stops_num=data.get("stops_num")
+            stops_num=data.get("stops_num"),
+            owner_id=owner_id
         )
         db.session.add(offer)
         db.session.commit()
@@ -155,8 +156,13 @@ class OffersService:
     @staticmethod
     def update_offer(offer: CommLeasing, data: dict) -> CommLeasing:
         """Оновлює існуюче оголошення."""
-        for key, value in data.items():
-            setattr(offer, key, value)
+        fields = [
+            "address", "district", "city", "price", "area",
+            "description", "repair", "recommended_for", "stops_num"
+        ]
+        for field in fields:
+            if field in data and data[field] is not None:
+                setattr(offer, field, data[field])
         db.session.commit()
         return offer
     
