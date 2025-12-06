@@ -19,116 +19,54 @@ from flask import render_template, request, jsonify, url_for
 import math
 from app.services.ranking_service import RankingService
 from app.services.offers_service import OffersService
+from app.services.onboarding_service import OnboardingService
 
 
 
 @test.route('/')
 def index():
-    res = CommLeasing.query.limit(10).all()
-    data = [p.serialize() for p in res]
-    #return jsonify(data)
-    #return Response(
-    #    json.dumps(data, ensure_ascii=False),
-    #    mimetype="application/json"
-    #)
     return render_template ('main.html')
+
 
 @test.route('/onboarding')
 def onboarding():
-    businesses = Business_type.query.with_entities(Business_type.id,
-                                          Business_type.business_type,
-                                          Business_type.min_area,
-                                          Business_type.max_area).all()
-    categories_list = [
-        {
-            "id": c.id,
-            "business_type": c.business_type,
-            "min_area": c.min_area,
-            "max_area": c.max_area
-        }
-        for c in businesses
-    ]
-
-    unique_districts = db.session.query(CommLeasing.district).distinct().all()
-    districts = [d[0] for d in unique_districts]
-    unique_cities = db.session.query(CommLeasing.city).distinct().all()
-    cities = [c[0] for c in unique_cities]
-    return render_template("onboarding.html",
-                           categories = categories_list,
-                           districts = districts,
-                           cities = cities
+    """Форма онбордингу - вибір параметрів для ранжування."""
+    data = OnboardingService.get_initial_data()
+    return render_template("onboarding.html",   
+                           categories = data["categories"],
+                           districts = data["districts"],
+                           cities = data["cities"]
                            )
 
 
-@test.route("/onboarding/offers", methods=["POST", "GET"])
+@test.route("/onboarding/offers", methods=["POST"])
 def onboarding_submit():
     data = request.get_json(silent=True)
-    print("Received onboarding data:", data)
     if not data and request.form.get('payload'):
         data = json.loads(request.form['payload'])
     data = data or {}
-    print("Processed onboarding data:", data)
 
-    # normalize incoming payload
-    user_choice = {
-        "business_type": data.get("business_type"),
-        "business_type_id": data.get("business_type_id"),
-        "area": {"min": data.get("area", {}).get("min"),
-                 "max": data.get("area", {}).get("max")},
-        "preferred_districts": data.get("districts", []),
-        "city": data.get("city")
-    }
+    user_choice = OnboardingService.normalize_user_choice(data)
 
-    #results = run_algorithm(user_choice)
+    #service, offers_for_view = OnboardingService.run_ranking(user_choice)
 
-    service = RankingService(user_choice)
-    results = service.run()
-
-    ids = [r["id"] for r in results]
-    offer_map = OffersService.get_multiple(ids)
-
-    offers_with_ranks = OffersService.attach_ranking_data(offer_map, results)
-
-    session["ranking_results"] = {
-        row["alternative"]: {
-            "rank"  : row.get("Rank"),
-            "competitors_count": row.get("competitors_count"),
-            "other_businesses_count": row.get("other_businesses_count")
-        }
-        for row in service.matrix_rows
-    }
-
-    session["rakning_offers_ids"] = ids
+    offer_ids, ranking_results = OnboardingService.run_ranking(user_choice)
 
 
-    #return render_template('properties_onb.html', offers=offers_with_ranks)
+    session["ranking_offer_ids"] = offer_ids
+    session["ranking_results"] = ranking_results
+
     return redirect(url_for('test.list_ranked_properties'))
 
 
 @test.route('/properties/ranked', methods=['GET'])
 def list_ranked_properties():
+
     offer_ids = session.get("rakning_offers_ids", [])
     ranking_results = session.get("ranking_results", {})
 
-    if not offer_ids:
-        offers = OffersService.serialize_multiple(OffersService.get_all())
-        return render_template("properties.html", offers=offers)
-    
-    offers_map = OffersService.get_multiple(offer_ids)
-    offers_for_view = []
-    for oid in offer_ids:
-        offer = offers_map.get(oid)
-        if not offer:
-            continue
-        serialized = OffersService.serialize_offer(offer)
-        extra = ranking_results.get(str(oid))
-        if extra:
-            serialized["rank"] = extra.get("rank")
-            print("Rank for offer", oid, "is", serialized["rank"])
-            serialized["competitors_count"] = extra.get("competitors_count")
-            serialized["other_businesses_count"] = extra.get("other_businesses_count")
-        offers_for_view.append(serialized)
-    offers_for_view.sort(key=lambda x: x.get("rank", math.inf))
+    offers_for_view = OnboardingService.build_ranked_offers(offer_ids, ranking_results)
+
     return render_template('properties_onb.html', offers=offers_for_view)
 
 
@@ -287,6 +225,7 @@ def change_password():
         return redirect(url_for('test.profile_view'))
 
     return render_template('password.html', user=current_user)
+
 
 @test.route('/change_role', methods=['POST'])
 @login_required

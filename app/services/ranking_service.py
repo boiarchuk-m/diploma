@@ -51,7 +51,7 @@ class RankingService:
         }
     
     def get_offers(self):
-        q = CommLeasing.query
+        q = CommLeasing.query.filter_by(approved=True)
         
         if self.districts:
             q = q.filter(CommLeasing.district.in_(self.districts))
