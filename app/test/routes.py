@@ -348,33 +348,98 @@ def edit_property(offer_id):
             flash("Ви не маєте прав на редагування цього оголошення.", "danger")
             return redirect(url_for('test.property_detail', offer_id=offer_id))
 
+    photos_serialized = [p.serialize() for p in offer.offer_photos]
+
     if request.method == 'POST':
-        address=request.form.get('address') or "",
-        district = request.form.get('district') or "",
-        city = request.form.get('city') or "",
-        price = request.form.get('price'),
-        area = request.form.get('area'),
-        description = request.form.get('description') or "",
+        address=request.form.get('address') or ""
+        district = request.form.get('district') or ""
+        city = request.form.get('city') or ""
+        price = request.form.get('price')
+        area = request.form.get('area')
+        description = request.form.get('description') or ""
         repair = request.form.get('repair') or "" 
 
+        if not address or not district or not price or not area:
+            flash("Будь ласка, заповніть обовʼязкові поля", "danger")
+            return render_template('property_form.html', offer=offer, photos_serialized=photos_serialized)
+        try:
+            # Use float first for price to handle '100.0', then int
+            price_val = int(float(price))
+            area_val = int(float(area))
+        except ValueError:
+            flash("Невірний формат числових полів (ціна та площа повинні бути числами)", "danger")
+            return render_template('property_form.html', offer=offer, photos_serialized=photos_serialized)
+        
+        
         try:
             data = {
                 "address": address,
                 "district": district,
                 "city": city,
-                "price": int(price),
-                "area": float(area),
+                "price": price_val,
+                "area": area_val,
                 "description": description,
                 "repair": repair,
             }
             offer = OffersService.update_offer(offer, data)
+        
+            # Handle photo deletions
+            photos_to_delete = request.form.getlist('delete_photos')
+            print(f"Photos to delete: {photos_to_delete}")  # Debug log
+            if photos_to_delete !=['']:
+                for photo_id in photos_to_delete:
+                    photo = OfferPhoto.query.get(int(photo_id))
+                    if photo and photo.offer_id == offer.id:
+                        file_path = os.path.join(current_app.config["UPLOAD_FOLDER"], photo.photo_url.replace('photos/', ''))
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
+                        db.session.delete(photo)
+
+
+            # Handle new primary photo
+            new_primary_id = request.form.get('primary_photo')
+            print(f"New primary photo ID: {new_primary_id}")  # Debug log
+            if new_primary_id:
+                # Reset all to non-primary
+                OfferPhoto.query.filter_by(offer_id=offer.id).update({"is_primary": False})
+                # Set new primary
+                primary_photo = OfferPhoto.query.get(int(new_primary_id))
+                if primary_photo and primary_photo.offer_id == offer.id:
+                    primary_photo.is_primary = True
+
+            # Handle new photo uploads
+            files = request.files.getlist("photos")
+            for idx, file in enumerate(files):
+                if not file or file.filename == "":
+                    continue
+                if not allowed_file(file.filename):
+                    continue
+
+                filename = unique_filename(file.filename)
+                upload_folder = current_app.config["UPLOAD_FOLDER"]
+                file_path = os.path.join(upload_folder, filename)
+                file.save(file_path)
+
+                relative_path = os.path.join("photos", filename).replace("\\", "/")
+
+                # If no primary set yet, make first new photo primary
+                is_primary = (idx == 0 and not OfferPhoto.query.filter_by(offer_id=offer.id, is_primary=True).first())
+
+                photo = OfferPhoto(
+                    offer_id=offer.id,
+                    photo_url=relative_path,
+                    is_primary=is_primary
+                )
+                db.session.add(photo)
+            db.session.commit()
+
             flash("Оголошення успішно оновлено", "success")
             return redirect(url_for("test.property_detail", offer_id=offer.id))
         except ValueError:
-            flash("Невірний формат числових полів", "danger")
+            flash("Не вдалося оновити оголошення", "danger")
 
 
-    return render_template('property_form.html', offer=offer)
+    return render_template('property_form.html', offer=offer, photos_serialized=photos_serialized)
 
        
 

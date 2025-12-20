@@ -102,6 +102,7 @@
                 <div class="previews">
                   <div v-for="(photo, index) in existingPhotos" :key="index" class="preview-item">
                     <img :src="photo.url" alt="Existing" class="preview-img">
+                    <input type="radio" name="primary_photo" :value="photo.id" v-model="primaryPhotoId">
                     <span v-if="photo.is_primary" class="badge bg-success">Головне</span>
                     <button type="button" class="btn btn-sm btn-warning" @click="removeExisting(index)">Видалити</button>
                   </div>
@@ -109,6 +110,7 @@
               </div>
             </div>
           </div>
+
 
           <button type="submit" class="btn btn-primary">
             {% if offer %}Зберегти зміни{% else %}Створити оголошення{% endif %}
@@ -122,7 +124,7 @@
 
 {% block scripts %}
 <script id="initial-data" type="application/json">
-  {{ offer.photos|tojson if offer else '[]' }}
+  {{ photos_serialized | tojson }}
 </script>
 <script>
 const { createApp } = Vue;
@@ -132,7 +134,9 @@ createApp({
   data() {
     return {
       selectedFiles: [],
-      existingPhotos: []
+      existingPhotos: [],
+      photosToDelete: [],
+      primaryPhotoId: null
     };
   },
   methods: {
@@ -159,9 +163,17 @@ createApp({
       this.selectedFiles.splice(index, 1);
     },
     removeExisting(index) {
-      // For now, just remove from display; you can add backend delete logic later
-      this.existingPhotos.splice(index, 1);
+      const photo = this.existingPhotos[index];
+      this.markForDeletion(photo.id);
+    },
+    markForDeletion(photoId) {
+      if (!this.photosToDelete.includes(photoId)) {
+        this.photosToDelete.push(photoId);
+        // Remove from display
+        this.existingPhotos = this.existingPhotos.filter(p => p.id !== photoId);
+      }
     }
+
   },
   mounted() {
 
@@ -171,9 +183,15 @@ createApp({
       // Compute base URL in JS for safety (avoid inline Jinja)
       const baseUrl = '{{ url_for("static", filename="") }}';
       this.existingPhotos = photosData.map(p => ({
+        id: p.id,
         url: baseUrl + p.photo_url.replace(/\\/g, '/').replace(/^\//, ''),
         is_primary: p.is_primary
       }));
+      // Set primary photo ID if exists
+      const primary = this.existingPhotos.find(p => p.is_primary);
+      if (primary) {
+        this.primaryPhotoId = primary.id;
+      }
     } catch (e) {
       console.error('Failed to parse initial photos:', e);
       this.existingPhotos = [];
@@ -191,7 +209,26 @@ createApp({
         dt.items.add(item.file);
         input.files = dt.files;
         document.querySelector('form').appendChild(input);
+      });  
+
+      // Add deletion inputs
+      this.photosToDelete.forEach(delId => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'delete_photos';
+        input.value = delId;
+        document.querySelector('form').appendChild(input);
       });
+
+      // Add primary photo input
+      if (this.primaryPhotoId) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'primary_photo';
+        input.value = this.primaryPhotoId;
+        document.querySelector('form').appendChild(input);
+      }
+
     });
   }
 }).mount('#photo-upload');

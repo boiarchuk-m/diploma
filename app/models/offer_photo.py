@@ -16,6 +16,6 @@ class OfferPhoto(db.Model):
         return {
             'id': self.id,
             'offer_id': self.offer_id,
-            'filename': self.filename,
+            'photo_url': self.photo_url,
             'is_primary': self.is_primary
         }
