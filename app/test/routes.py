@@ -31,7 +31,7 @@ def index():
 @test.route('/onboarding')
 def onboarding():
     """Форма онбордингу - вибір параметрів для ранжування."""
-    data = OnboardingService.get_initial_data()
+    data = OffersService.get_initial_data()
     return render_template("onboarding.html",   
                            categories = data["categories"],
                            districts = data["districts"],
@@ -44,17 +44,20 @@ def onboarding_submit():
     data = request.get_json(silent=True)
     if not data and request.form.get('payload'):
         data = json.loads(request.form['payload'])
-    data = data or {}
+    raw = data or {}
+        
+    user_choice = {
+            "business_type": raw.get("business_type"),
+            "business_type_id": raw.get("business_type_id"),
+            "area": {
+                "min": raw.get("area", {}).get("min"),
+                "max": raw.get("area", {}).get("max")
+            },
+            "preferred_districts": raw.get("districts", []),
+            "city": raw.get("city"),
+    }
 
-    user_choice = OnboardingService.normalize_user_choice(data)
-
-    #service, offers_for_view = OnboardingService.run_ranking(user_choice)
-
-    offer_ids, ranking_results = OnboardingService.run_ranking(user_choice)
-
-
-    session["ranking_offer_ids"] = offer_ids
-    session["ranking_results"] = ranking_results
+    session["user_choice"] = user_choice
 
     return redirect(url_for('test.list_ranked_properties'))
 
@@ -62,10 +65,14 @@ def onboarding_submit():
 @test.route('/properties/ranked', methods=['GET'])
 def list_ranked_properties():
 
-    offer_ids = session.get("rakning_offers_ids", [])
-    ranking_results = session.get("ranking_results", {})
+    user_choice = session.get("user_choice", {})
 
-    offers_for_view = OnboardingService.build_ranked_offers(offer_ids, ranking_results)
+    #offer_ids, ranking_results = OnboardingService.run_ranking(user_choice)
+    results = RankingService(user_choice).run()
+
+    offers_for_view = OffersService.build_ranked_offers(results)
+
+    #offers_for_view = OnboardingService.build_ranked_offers(offer_ids, ranking_results)
 
     return render_template('properties_onb.html', offers=offers_for_view)
 

@@ -88,24 +88,23 @@
 
         <div class="offer-top">
           <div>
-            <div  class="address">
-              <a :href="`/property/${offer.id}`"> [[ offer.address ]] </a></div>
+            <div class="address">
+               <a :href="`/property/${offer.id}`"> [[ offer.address ]] </a></div>
+            
 
             <div class="meta">
               [[ offer.price.toLocaleString() ]] грн/міс <br>
               [[ offer.district ]] район &bull; [[ offer.area ]] м²
             </div>
 
+
             <!-- Optional rank (if exists) -->
-            <div v-if="offer.rank" class="rank-badge">
-              Ранг: [[ offer.rank ]]
-            </div>
+
           </div>
         </div>
 
         <div class="tags">
-          <span class="tag" v-for="(t, i) in offer.recommended_types" :key="i">[[ t ]]</span>
-         <!-- <span class="tag" v-for="(t, i) in splitTags(offer.recommended_for)" :key="i">[[ t ]]</span> -->
+           <span class="tag" v-for="(t, i) in offer.recommended_types" :key="i">[[ t ]]</span>
         </div>
 
         <div class="desc">[[ shorten(offer.description) ]]</div>
@@ -176,11 +175,9 @@ const app = Vue.createApp({
 
   data() {
     return {
-      offers: [],
+      allOffers: [],   // повний список з бекенду
+      offers: [],      // поточний список для відображення
       loading: true,
-      
-      accordionRepair: false,
-      accordionDistricts: false,
 
       // All UI filter fields
       filters: {
@@ -209,23 +206,58 @@ const app = Vue.createApp({
       return tags ? tags.split(',').map(t => t.trim()) : [];
     },
 
-    //  Apply filters (AJAX → /properties/filter)
-    async applyFilters() {
-      this.loading = true;
-      try {
-        const response = await fetch("/properties/filter", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(this.filters)
-        });
+    applyFilters() {
+      const f = this.filters;
+      const toNum = (v) =>
+        v !== null && v !== "" ? Number(v) : null;
 
-        const data = await response.json();
-        this.offers = data;
+      const minPrice = toNum(f.min_price);
+      const maxPrice = toNum(f.max_price);
+      const minArea  = toNum(f.min_area);
+      const maxArea  = toNum(f.max_area);
 
-      } catch (err) {
-        console.error("Filter request failed:", err);
+      let result = [...this.allOffers];
+
+      // Ціна
+      if (minPrice !== null && !Number.isNaN(minPrice)) {
+        result = result.filter(o => o.price >= minPrice);
       }
-      this.loading = false;
+      if (maxPrice !== null && !Number.isNaN(maxPrice)) {
+        result = result.filter(o => o.price <= maxPrice);
+      }
+
+      // Площа
+      if (minArea !== null && !Number.isNaN(minArea)) {
+        result = result.filter(o => o.area >= minArea);
+      }
+      if (maxArea !== null && !Number.isNaN(maxArea)) {
+        result = result.filter(o => o.area <= maxArea);
+      }
+
+      // Райони (мультивибір)
+      if (f.districts && f.districts.length) {
+        result = result.filter(o => f.districts.includes(o.district));
+      }
+
+      // Тип ремонту
+      if (f.repair_types && f.repair_types.length) {
+        // припускаю, що в даних поле називається "repair"
+        result = result.filter(o => f.repair_types.includes(o.repair));
+      }
+
+      // Сортування
+      if (f.sort === "price_asc") {
+        result.sort((a, b) => a.price - b.price);
+      } else if (f.sort === "price_desc") {
+        result.sort((a, b) => b.price - a.price);
+      } else if (f.sort === "area") {
+        result.sort((a, b) => a.area - b.area);
+      } else if (f.sort === "rank") {
+        // для відранжованих результатів
+        result.sort((a, b) => (a.rank || 999) - (b.rank || 999));
+      }
+
+      this.offers = result;
     },
 
     resetFilters() {
@@ -239,39 +271,22 @@ const app = Vue.createApp({
         sort: ""
     };
 
-    this.loadAllOffers();
-},
-
-     // load all offers without filters
-    async loadAllOffers() {
-      this.loading = true;
-      try {
-        const response = await fetch("/properties/filter", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({})
-        });
-
-        const data = await response.json();
-        this.offers = data;
-
-      } catch (err) {
-        console.error("Failed to load offers:", err);
-      }
-      this.loading = false;
-    }
+     this.offers = [...this.allOffers];
+}
 
   },
 
   
-
   mounted() {
     try {
       const raw = document.getElementById("initial-data").textContent || "[]";
-      this.offers = JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      this.allOffers = parsed;
+      this.offers = parsed;
     } catch (e) {
       console.error("Failed to parse initial offers:", e);
       this.loadAllOffers(); // fallback
+      this.allOffers = [];
       this.offers = [];
     } finally {
       this.loading = false;

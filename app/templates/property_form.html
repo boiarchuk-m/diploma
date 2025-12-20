@@ -78,32 +78,37 @@
             <textarea name="description" class="form-control" rows="4">{{ offer.description if offer else '' }}</textarea>
           </div>
 
-          <!-- Фото -->
-            <div class="mb-3">
+          <!-- Фото Section with Vue -->
+          <div class="mb-3">
             <label class="form-label">Фото приміщення</label>
-            <input type="file" name="photos" class="form-control" multiple accept="image/*">
-            <div class="form-text">
-                Можна вибрати кілька зображень. Перше стане головним.
-            </div>
-            </div>
+            <div id="photo-upload">
+              <!-- Drop Zone -->
+              <div class="drop-zone" @dragover.prevent @drop.prevent="onDrop" @click="$refs.fileInput.click()">
+                <p>Перетягніть файли сюди або натисніть, щоб вибрати</p>
+                <input ref="fileInput" type="file" multiple accept="image/*" @change="onFileSelect" style="display: none;">
+              </div>
 
-            {% if offer and offer.photos %}
-            <div class="mb-3">
-                <label class="form-label">Наявні фото</label>
-                <div class="d-flex flex-wrap gap-2">
-                {% for p in offer.photos %}
-                    <div class="position-relative">
-                    <img src="{{ url_for('static', filename=p.photo_url.replace('\\', '/').lstrip('/')) }}"
-                        alt="Фото"
-                        style="width: 120px; height: 90px; object-fit: cover; border-radius: 6px;">
-                    {% if p.is_primary %}
-                        <span class="badge bg-success position-absolute top-0 start-0 m-1">Головне</span>
-                    {% endif %}
-                    </div>
-                {% endfor %}
+              <!-- Selected Files Preview -->
+              <div class="previews mt-3">
+                <div v-for="(file, index) in selectedFiles" :key="index" class="preview-item">
+                  <img :src="file.url" alt="Preview" class="preview-img">
+                  <button type="button" class="btn btn-sm btn-danger" @click="removeFile(index)">Видалити</button>
                 </div>
+              </div>
+
+              <!-- Existing Photos (if editing) -->
+              <div v-if="existingPhotos.length" class="mt-3">
+                <h6>Наявні фото</h6>
+                <div class="previews">
+                  <div v-for="(photo, index) in existingPhotos" :key="index" class="preview-item">
+                    <img :src="photo.url" alt="Existing" class="preview-img">
+                    <span v-if="photo.is_primary" class="badge bg-success">Головне</span>
+                    <button type="button" class="btn btn-sm btn-warning" @click="removeExisting(index)">Видалити</button>
+                  </div>
+                </div>
+              </div>
             </div>
-            {% endif %}
+          </div>
 
           <button type="submit" class="btn btn-primary">
             {% if offer %}Зберегти зміни{% else %}Створити оголошення{% endif %}
@@ -113,4 +118,116 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script id="initial-data" type="application/json">
+  {{ offer.photos|tojson if offer else '[]' }}
+</script>
+<script>
+const { createApp } = Vue;
+
+createApp({
+    delimiters: ['[[', ']]'],
+  data() {
+    return {
+      selectedFiles: [],
+      existingPhotos: []
+    };
+  },
+  methods: {
+    onFileSelect(event) {
+      const files = Array.from(event.target.files);
+      this.addFiles(files);
+    },
+    onDrop(event) {
+      const files = Array.from(event.dataTransfer.files);
+      this.addFiles(files);
+    },
+    addFiles(files) {
+      files.forEach(file => {
+        if (file.type.startsWith('image/') && file.size <= 5 * 1024 * 1024) { // Max 5MB
+          const url = URL.createObjectURL(file);
+          this.selectedFiles.push({ file, url });
+        } else {
+          alert('Файл має бути зображенням і не більше 5MB');
+        }
+      });
+    },
+    removeFile(index) {
+      URL.revokeObjectURL(this.selectedFiles[index].url);
+      this.selectedFiles.splice(index, 1);
+    },
+    removeExisting(index) {
+      // For now, just remove from display; you can add backend delete logic later
+      this.existingPhotos.splice(index, 1);
+    }
+  },
+  mounted() {
+
+    try {
+      const rawPhotos = document.getElementById('initial-data').textContent || '[]';
+      const photosData = JSON.parse(rawPhotos);
+      // Compute base URL in JS for safety (avoid inline Jinja)
+      const baseUrl = '{{ url_for("static", filename="") }}';
+      this.existingPhotos = photosData.map(p => ({
+        url: baseUrl + p.photo_url.replace(/\\/g, '/').replace(/^\//, ''),
+        is_primary: p.is_primary
+      }));
+    } catch (e) {
+      console.error('Failed to parse initial photos:', e);
+      this.existingPhotos = [];
+    }
+
+    // Sync selectedFiles with the hidden input on form submit
+    document.querySelector('form').addEventListener('submit', () => {
+       this.selectedFiles.forEach(item => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.name = 'photos';
+        input.multiple = true;
+        input.style.display = 'none';
+        const dt = new DataTransfer();
+        dt.items.add(item.file);
+        input.files = dt.files;
+        document.querySelector('form').appendChild(input);
+      });
+    });
+  }
+}).mount('#photo-upload');
+</script>
+
+<style>
+.drop-zone {
+  border: 2px dashed #ccc;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  background: #f9f9f9;
+  border-radius: 5px;
+}
+.drop-zone:hover {
+  background: #e9e9e9;
+}
+.previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.preview-item {
+  position: relative;
+  display: inline-block;
+}
+.preview-img {
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+.preview-item button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
+</style>
 {% endblock %}

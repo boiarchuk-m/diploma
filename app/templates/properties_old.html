@@ -1,55 +1,285 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
 {% block title %}Оголошення{% endblock %}
 
 {% block content %}
+<div id="app">
+
+  <!-- Loading indicator -->
+  <div v-if="loading">Завантаження...</div>
+
+  <!-- FILTER PANEL -->
+  <div v-else class="filter-panel-full">
 
 
-<form method="GET" action="/properties">
+    <form @submit.prevent="applyFilters" class="filters-grid">
 
-    <label>Min Price:</label>
-    <input type="number" name="min_price" value="{{ filters.min_price or '' }}">
+      <div class="filter-group filter-small">
+        <label>Мін. ціна</label>
+        <input type="number" v-model="filters.min_price" placeholder="0">
+      </div>
 
-    <label>Max Price:</label>
-    <input type="number" name="max_price" value="{{ filters.max_price or '' }}">
+      <div class="filter-group filter-small">
+        <label>Макс. ціна</label>
+        <input type="number" v-model="filters.max_price" placeholder="100000">
+      </div>
 
-    <label>Min Area:</label>
-    <input type="number" name="min_area" value="{{ filters.min_area or '' }}">
+      <div class="filter-group filter-small">
+        <label>Мін. площа</label>
+        <input type="number" v-model="filters.min_area">
+      </div>
 
-    <label>Max Area:</label>
-    <input type="number" name="max_area" value="{{ filters.max_area or '' }}">
+      <div class="filter-group filter-small">
+        <label>Макс. площа</label>
+        <input type="number" v-model="filters.max_area">
+      </div>
 
-    <label>District:</label>
-    <select name="districts" multiple>
-        <option value="Шевченківський">Шевченківський</option>
-        <option value="Печерський">Печерський</option>
-        <option value="Подільський">Подільський</option>
-    </select>
+      <div class="filter-group filter-medium">
+      <label>Тип ремонту</label>
+       <multi-select
+        v-model="filters.repair_types"
+        :options="allRepair"
+        label="Тип ремонту"></multi-select>
+        </div> 
 
-    <label>Sort:</label>
-    <select name="sort">
-        <option value="">None</option>
-        <option value="price_asc">Price ↑</option>
-        <option value="price_desc">Price ↓</option>
-        <option value="area">Area</option>
-    </select>
+        <div class="filter-group filter-medium">
+      <label>Райони</label>
+      <multi-select
+        v-model="filters.districts"
+        :options="allDistricts"
+        label="Райони"></multi-select>
+        </div>
 
-    <button type="submit">Apply Filters</button>
-</form>
+      <div class="filter-group filter-medium">
+        <label>Сортування</label>
+        <select v-model="filters.sort">
+          <option value="">Без сортування</option>
+          <option value="price_asc">Ціна ↑</option>
+          <option value="price_desc">Ціна ↓</option>
+          <option value="area">Площа</option>
+          <option v-if="offers.length && offers[0].rank" value="rank">Рейтинг (Rank)</option>
+        </select>
+      </div>
 
-<hr>
+      <div class="filter-buttons-row">
+      <button type="submit" class="apply-btn" >Застосувати</button>
+      <button type="button" class="reset-btn" @click="resetFilters">Скинути</button>
+        </div>
+    </form>
+  </div>
 
-{% for o in offers %}
-<div class="offer">
-    <h3>{{ o.name }}</h3>
-    <p>Price: {{ o.price }}</p>
-    <p>Area: {{ o.area }}</p>
-    <p>District: {{ o.district }}</p>
+  <!-- OFFER LIST -->
+  <div class="offers" v-if="!loading">
+    <div v-for="offer in offers" :key="offer.id" class="offer-card">
 
-    {% if o.photos %}
-        <img src="{{ o.photos[0] }}" width="150">
-    {% endif %}
+      <!-- Left: photo -->
+      <div class="thumb-wrap">
+        <img
+          v-if="offer.photos && offer.photos.length"
+          :src="offer.photos[0]"
+          class="offer-photo"
+          :alt="offer.address"
+          loading="lazy"
+        >
+      </div>
+
+      <!-- Right: info -->
+      <div class="offer-info">
+
+        <div class="offer-top">
+          <div>
+            <div  class="address">
+              <a :href="`/property/${offer.id}`"> [[ offer.address ]] </a></div>
+
+            <div class="meta">
+              [[ offer.price.toLocaleString() ]] грн/міс <br>
+              [[ offer.district ]] район &bull; [[ offer.area ]] м²
+            </div>
+
+            <!-- Optional rank (if exists) -->
+            <div v-if="offer.rank" class="rank-badge">
+              Ранг: [[ offer.rank ]]
+            </div>
+          </div>
+        </div>
+
+        <div class="tags">
+          <span class="tag" v-for="(t, i) in offer.recommended_types" :key="i">[[ t ]]</span>
+         <!-- <span class="tag" v-for="(t, i) in splitTags(offer.recommended_for)" :key="i">[[ t ]]</span> -->
+        </div>
+
+        <div class="desc">[[ shorten(offer.description) ]]</div>
+      </div>
+    </div>
+  </div>
 </div>
-{% endfor %}
+{% endblock %}
 
+{% block scripts %}
+<script id="initial-data" type="application/json">
+  {{ offers|tojson }}
+</script>
+
+<script>
+
+    const MultiSelect = {
+  props: ["options", "modelValue", "label"],
+  data() {
+    return {
+      open: false
+    };
+  },
+  methods: {
+    toggle() {
+      this.open = !this.open;
+    },
+    isSelected(value) {
+      return this.modelValue.includes(value);
+    },
+    toggleOption(value) {
+      let updated = [...this.modelValue];
+      if (updated.includes(value)) {
+        updated = updated.filter(i => i !== value);
+      } else {
+        updated.push(value);
+      }
+      this.$emit("update:modelValue", updated);
+    }
+  },
+  template: `
+    <div class="multi-select" @click.stop="">
+      <div class="multi-select-display" @click="toggle">
+        <span v-text="label"></span>
+        <span class="arrow">
+          <span v-if="open">▲</span>
+          <span v-else>▼</span>
+        </span>
+      </div>
+
+      <div class="multi-select-dropdown" v-show="open">
+        <div 
+          v-for="opt in options" 
+          :key="opt" 
+          class="multi-select-option"
+          @click="toggleOption(opt)"
+        >
+          <input type="checkbox" :checked="isSelected(opt)" />
+          <label v-text="opt"></label>
+        </div>
+      </div>
+    </div>
+  `
+};
+
+const app = Vue.createApp({
+  delimiters: ['[[', ']]'],
+
+  data() {
+    return {
+      offers: [],
+      loading: true,
+      
+      accordionRepair: false,
+      accordionDistricts: false,
+
+      // All UI filter fields
+      filters: {
+        min_price: null,
+        max_price: null,
+        min_area: null,
+        max_area: null,
+        districts: [],
+        repair_types: [],
+        sort: ""
+      },
+
+      // You can load from DB or hardcode:
+      allDistricts: ["Шевченківський", "Печерський", "Подільський", "Оболонський", "Солом'янський"],
+        allRepair: ["Косметичний", "Євроремонт", "Без ремонту"]
+    };
+  },
+
+  methods: {
+
+    shorten(text) {
+      return text && text.length > 180 ? text.slice(0, 180) + '…' : text;
+    },
+
+    splitTags(tags) {
+      return tags ? tags.split(',').map(t => t.trim()) : [];
+    },
+
+    //  Apply filters (AJAX → /properties/filter)
+    async applyFilters() {
+      this.loading = true;
+      try {
+        const response = await fetch("/properties/filter", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(this.filters)
+        });
+
+        const data = await response.json();
+        this.offers = data;
+
+      } catch (err) {
+        console.error("Filter request failed:", err);
+      }
+      this.loading = false;
+    },
+
+    resetFilters() {
+    this.filters = {
+        min_price: null,
+        max_price: null,
+        min_area: null,
+        max_area: null,
+        districts: [],
+        repair_types: [],
+        sort: ""
+    };
+
+    this.loadAllOffers();
+},
+
+     // load all offers without filters
+    async loadAllOffers() {
+      this.loading = true;
+      try {
+        const response = await fetch("/properties/filter", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({})
+        });
+
+        const data = await response.json();
+        this.offers = data;
+
+      } catch (err) {
+        console.error("Failed to load offers:", err);
+      }
+      this.loading = false;
+    }
+
+  },
+
+  
+
+  mounted() {
+    try {
+      const raw = document.getElementById("initial-data").textContent || "[]";
+      this.offers = JSON.parse(raw);
+    } catch (e) {
+      console.error("Failed to parse initial offers:", e);
+      this.loadAllOffers(); // fallback
+      this.offers = [];
+    } finally {
+      this.loading = false;
+    }
+  }
+});
+
+app.component("multi-select", MultiSelect);
+app.mount("#app");
+</script>
 {% endblock %}

@@ -135,28 +135,20 @@ class RankingService:
 
 
     def prepare_output(self):
-        output = []
-        offer_map = {o.id: o for o in self.offers}
+        
+        offer_ids = [row["alternative"] for row in self.matrix_rows]
 
-        for row in self.matrix_rows:
-            offer = offer_map[row["alternative"]]
-            item = offer.serialize()
-            item["Rank"] = row["Rank"]
-
-            photos = OfferPhoto.query.filter_by(
-                offer_id=offer.id,
-                is_primary=True
-            ).all()
-
-            item["photos"] = [
-                url_for("static", filename=p.photo_url.replace("\\", "/").lstrip("/"))
-                for p in photos
-            ]
-
-            output.append(item)
-
-        output.sort(key=lambda x: x["Rank"])
-        return output
+        # мета-дані ранжування (для зберігання в session)
+        ranking_results = {
+            str(row["alternative"]): {
+                "rank": row.get("Rank"),
+                "competitors_count": row.get("competitors"),
+                "other_businesses_count": row.get("otherbiz"),
+                "score": row.get("Score")
+            }
+            for row in self.matrix_rows
+        }
+        return offer_ids, ranking_results
     
     def run(self):
         self.weights = self.get_weights()
@@ -168,17 +160,18 @@ class RankingService:
         results = []
         for row in self.matrix_rows:
             results.append({
+                # Основні ідентифікатори та оцінки
                 "id": row["alternative"],
-                "rank": row["Rank"],
-                "score": row["Score"],
-
-                "competitors_count": row["competitors_count"],
-                "other_businesses_count": row["other_businesses_count"]
+                "rank": row.get("Rank"),
+                "score": row.get("Score"),
+                
+                # Аналітичні дані (які ми порахували динамічно)
+                "competitors_count": row.get("competitors") or row.get("competitors_count", 0),
+                "other_businesses_count": row.get("otherbiz") or row.get("other_businesses_count", 0)
             })
-            
-        # за замовчуванням відсортуємо по рангу
-        results.sort(key=lambda x: x["rank"])
-        print(results)
+
+        # 3. Сортування результатів (від 1-го місця до останнього)
+        results.sort(key=lambda x: x["rank"] if x["rank"] is not None else float('inf'))
 
         #return self.prepare_output()
         return results
