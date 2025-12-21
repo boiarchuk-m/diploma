@@ -16,13 +16,19 @@
         </button>
 
         <!-- Кнопка Зберегти -->
-        {% if current_user.is_authenticated %}
-
-          <button class="btn btn-primary"> Зберегти</button>
-        </form>
+       {% if current_user.is_authenticated %}
+        {% if is_saved %}
+            <form method="POST" action="{{ url_for('test.unsave_offer', offer_id=offer.id) }}" style="display: inline;">
+            <button type="submit" class="btn btn-success">Збережено</button>
+            </form>
+        {% else %}
+            <form method="POST" action="{{ url_for('test.save_offer', offer_id=offer.id) }}" style="display: inline;">
+            <button type="submit" class="btn btn-primary">Зберегти</button>
+            </form>
+        {% endif %}
         {% else %}
         <a href="{{ url_for('test.login') }}" class="btn btn-primary">
-           Увійти, щоб зберегти
+            Увійти, щоб зберегти
         </a>
         {% endif %}
 

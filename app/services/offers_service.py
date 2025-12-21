@@ -4,6 +4,7 @@ from app.models.comm_leasing import CommLeasing
 from app.models.offer_photo import OfferPhoto
 from app.models.recommended_business import RecommendedBusiness
 from app.models.business_type import Business_type
+from app.models.saved_offers import SavedOffer
 import re
 import math
 from typing import List
@@ -174,6 +175,9 @@ class OffersService:
     @staticmethod
     def delete_offer(offer: CommLeasing) -> None:
         """Видаляє оголошення."""
+        OfferPhoto.query.filter_by(offer_id=offer.id).delete()
+        RecommendedBusiness.query.filter_by(listing_id=offer.id).delete()
+        SavedOffer.query.filter_by(offer_id=offer.id).delete()
         db.session.delete(offer)
         db.session.commit()
 

@@ -55,7 +55,7 @@
                 <ul class="dropdown-menu dropdown-menu-end"
                     aria-labelledby="accountDropdown">
 
-                     <!-- Якщо tenant – показуємо "Збережені оголошення" -->
+                     
                    {% if current_user.role == 'tenant' %}
                    <li>
                     <a class="dropdown-item"
@@ -66,13 +66,13 @@
 
                   <li>
                     <a class="dropdown-item"
-                       href="#">
+                       href="{{ url_for('test.saved_offers') }}">
                       Збережені оголошення
                     </a>
                   </li>
                   {% endif %}
 
-                  <!-- Якщо landlord – показуємо "Мої оголошення" -->
+                 
                   {% if current_user.role == 'landlord' %}
                      <li>
                     <a class="dropdown-item"
@@ -87,6 +87,13 @@
                         Мої оголошення
                       </a>
                     </li>
+
+                     <li>
+                    <a class="dropdown-item"
+                       href="{{ url_for('test.saved_offers') }}">
+                      Збережені оголошення
+                    </a>
+                  </li>
                   {% endif %}
 
 
@@ -147,7 +154,7 @@
     <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
 
     <!-- Custom JS -->
-    {% block scripts %}
+    {% block scripts %} {% endblock %}
     <script>
 document.addEventListener("DOMContentLoaded", function () {
     const alerts = document.querySelectorAll(".flash-alert");
@@ -167,6 +174,5 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
     
-    {% endblock %}
 </body>
 </html>

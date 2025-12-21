@@ -66,12 +66,15 @@
 
            <!-- Рекомендовано для -->
           <div class="mb-3">
-            <label class="form-label">Рекомендовано для (виберіть кілька)</label>
-            <select id="recommended-select" multiple>
-              <option v-for="bt in businessTypes" :key="bt.id" :value="bt.id" :selected="selectedRecommended.includes(bt.id)">
-                [[ bt.business_type ]]
-              </option>
-            </select>
+            <label class="form-label">Рекомендовано для (виберіть один, або кілька варіантів)</label>
+            <div class="recommended-checkboxes">
+              <div v-for="bt in businessTypes" :key="bt.id" class="form-check">
+                <input class="form-check-input" type="checkbox" :value="bt.id" v-model="selectedRecommended" :id="'bt-' + bt.id">
+                <label class="form-check-label" :for="'bt-' + bt.id">
+                  [[ bt.business_type ]]
+                </label>
+              </div>
+            </div>
           </div>
 
           <!-- Опис -->
@@ -295,6 +298,18 @@ createApp({
   position: absolute;
   top: 5px;
   right: 5px;
+}
+
+.recommended-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  max-height: 200px; 
+  overflow-y: auto;
+}
+
+.recommended-checkboxes .form-check {
+  margin-bottom: 5px;
 }
 </style>
 {% endblock %}
