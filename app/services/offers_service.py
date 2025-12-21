@@ -180,7 +180,7 @@ class OffersService:
     @staticmethod
     def approve_offer(offer: CommLeasing) -> None:
         """Затверджує оголошення."""
-        offer.approved = Trueп
+        offer.approved = True
         db.session.commit()
     
     @staticmethod

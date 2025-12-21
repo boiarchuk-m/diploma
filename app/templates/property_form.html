@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
+<div id="app" class="row justify-content-center">
   <div class="col-lg-8">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h3>
@@ -64,12 +64,14 @@
             </select>
           </div>
 
-          <!-- Рекомендовано для -->
+           <!-- Рекомендовано для -->
           <div class="mb-3">
-            <label class="form-label">Рекомендовано для (через кому)</label>
-            <input type="text" name="recommended_for" class="form-control"
-                   placeholder="Кавʼярня, офіс, салон краси"
-                   value="{{ offer.recommended_for if offer else '' }}">
+            <label class="form-label">Рекомендовано для (виберіть кілька)</label>
+            <select id="recommended-select" multiple>
+              <option v-for="bt in businessTypes" :key="bt.id" :value="bt.id" :selected="selectedRecommended.includes(bt.id)">
+                [[ bt.business_type ]]
+              </option>
+            </select>
           </div>
 
           <!-- Опис -->
@@ -126,6 +128,12 @@
 <script id="initial-data" type="application/json">
   {{ photos_serialized | tojson }}
 </script>
+<script id="business-types-data" type="application/json">
+  {{ business_types | tojson }}
+</script>
+<script id="current-recommended-data" type="application/json">
+  {{ current_recommended | tojson if current_recommended else '[]' }}
+</script>
 <script>
 const { createApp } = Vue;
 
@@ -136,7 +144,9 @@ createApp({
       selectedFiles: [],
       existingPhotos: [],
       photosToDelete: [],
-      primaryPhotoId: null
+      primaryPhotoId: null,
+      businessTypes: [],
+      selectedRecommended: []
     };
   },
   methods: {
@@ -197,6 +207,17 @@ createApp({
       this.existingPhotos = [];
     }
 
+    try {
+      const btRaw = document.getElementById('business-types-data').textContent || '[]';
+      this.businessTypes = JSON.parse(btRaw);
+      const recRaw = document.getElementById('current-recommended-data').textContent || '[]';
+      this.selectedRecommended = JSON.parse(recRaw);
+    } catch (e) {
+      console.error('Failed to parse business types or recommendations:', e);
+      this.businessTypes = [];
+      this.selectedRecommended = [];
+    }
+
     // Sync selectedFiles with the hidden input on form submit
     document.querySelector('form').addEventListener('submit', () => {
        this.selectedFiles.forEach(item => {
@@ -220,6 +241,15 @@ createApp({
         document.querySelector('form').appendChild(input);
       });
 
+      // Add recommended types
+      this.selectedRecommended.forEach(typeId => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'recommended_types';
+        input.value = typeId;
+        document.querySelector('form').appendChild(input);
+      });
+
       // Add primary photo input
       if (this.primaryPhotoId) {
         const input = document.createElement('input');
@@ -231,7 +261,7 @@ createApp({
 
     });
   }
-}).mount('#photo-upload');
+}).mount('#app');
 </script>
 
 <style>

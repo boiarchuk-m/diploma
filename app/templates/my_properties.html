@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}Мої оголошення{% endblock %}
+
+{% block content %}
+<div id="app">
+
+  <!-- Statistics and Create Button -->
+  <div class="stats-panel">
+    <div class="stat-item">
+      <strong>Загальна кількість:</strong> {{ total }}
+    </div>
+    <div class="stat-item">
+      <strong>Затверджені:</strong> {{ approved }}
+    </div>
+    <div class="stat-item">
+      <strong>Очікують затвердження:</strong> {{ pending }}
+    </div>
+    <div class="stat-item">
+      <a href="{{ url_for('test.create_property') }}" class="btn btn-primary">Створити нове оголошення</a>
+    </div>
+  </div>
+
+  <!-- Loading indicator -->
+  <div v-if="loading">Завантаження...</div>
+
+  <!-- OFFER LIST -->
+  <div class="offers" v-else>
+    <div v-for="offer in offers" :key="offer.id" class="offer-card">
+
+      <!-- Left: photo -->
+      <div class="thumb-wrap">
+        <img
+          v-if="offer.photos && offer.photos.length"
+          :src="offer.photos[0]"
+          class="offer-photo"
+          :alt="offer.address"
+          loading="lazy"
+        >
+      </div>
+
+      <!-- Right: info -->
+      <div class="offer-info">
+
+        <div class="offer-top">
+          <div>
+            <div class="address">
+              <a :href="`/property/${offer.id}`">[[ offer.address ]]</a>
+            </div>
+
+            <div class="meta">
+              [[ offer.price.toLocaleString() ]] грн/міс <br>
+              [[ offer.district ]] район • [[ offer.area ]] м²
+            </div>
+
+            <!-- Approval status -->
+            <div class="status">
+              <span v-if="offer.approved" class="badge bg-success">Затверджено</span>
+              <span v-else class="badge bg-warning">Очікує затвердження</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tags">
+          <span class="tag" v-for="(t, i) in offer.recommended_types" :key="i">[[ t ]]</span>
+        </div>
+
+        <div class="desc">[[ shorten(offer.description) ]]</div>
+
+        <!-- Edit button -->
+        <div class="actions">
+          <a :href="`/property/${offer.id}/edit`" class="btn btn-sm btn-secondary">Редагувати</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script id="initial-data" type="application/json">
+  {{ offers|tojson }}
+</script>
+
+<script>
+const app = Vue.createApp({
+  delimiters: ['[[', ']]'],
+
+  data() {
+    return {
+      offers: [],
+      loading: true
+    };
+  },
+
+  methods: {
+    shorten(text) {
+      return text && text.length > 180 ? text.slice(0, 100) + '…' : text;
+    },
+
+    splitTags(tags) {
+      return tags ? tags.split(',').map(t => t.trim()) : [];
+    }
+  },
+
+  mounted() {
+    try {
+      const raw = document.getElementById("initial-data").textContent || "[]";
+      this.offers = JSON.parse(raw);
+    } catch (e) {
+      console.error("Failed to parse offers:", e);
+      this.offers = [];
+    } finally {
+      this.loading = false;
+    }
+  }
+});
+
+app.mount("#app");
+</script>
+
+<style>
+.stats-panel {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 5px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.offers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(600px, 1fr));
+  gap: 20px;
+}
+
+.offer-card {
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  overflow: hidden;
+  display: flex;
+}
+
+.thumb-wrap {
+  flex: 0 0 300px;
+}
+
+.offer-photo {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.offer-info {
+  padding: 10px;
+  flex: 1;
+}
+
+.address a {
+  text-decoration: none;
+  color: #007bff;
+}
+
+.actions {
+  margin-top: 10px;
+}
+</style>
+{% endblock %}

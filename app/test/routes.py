@@ -12,6 +12,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from app.services.users_service import UsersService
 from app.utils.decorators import roles_required
 from app.utils.files import allowed_file, unique_filename
+from app.models.recommended_business import RecommendedBusiness
 
 import json
 from flask import Response, flash, redirect, session, current_app
@@ -272,6 +273,9 @@ def property_detail(offer_id):
 @roles_required(User.ROLE_LANDLORD)
 def create_property():
 
+    business_types = Business_type.query.all()
+    business_types_serialized = [bt.serialize() for bt in business_types]
+
     if request.method == 'POST':
         address=request.form.get('address') or ""
         district = request.form.get('district') or ""
@@ -296,6 +300,16 @@ def create_property():
                 "repair": repair,
             }
             offer = OffersService.create_offer(data, owner_id=current_user.id)
+
+            recommended_types = request.form.getlist('recommended_types')
+            for type_id in recommended_types:
+                try:
+                    type_id_int = int(type_id)
+                    rec = RecommendedBusiness(listing_id=offer.id, type_id=type_id_int)
+                    db.session.add(rec)
+                except ValueError:
+                    continue
+
 
             # --- робота з фото ---
             files = request.files.getlist("photos")
@@ -332,7 +346,7 @@ def create_property():
             flash("Невірний формат числових полів", "danger")
 
 
-    return render_template('property_form.html', offer=None)
+    return render_template('property_form.html', offer=None, photos_serialized=[], business_types=business_types_serialized)
 
 
 @test.route('/property/<int:offer_id>/edit', methods=['GET', 'POST'])
@@ -349,6 +363,10 @@ def edit_property(offer_id):
             return redirect(url_for('test.property_detail', offer_id=offer_id))
 
     photos_serialized = [p.serialize() for p in offer.offer_photos]
+
+    business_types = Business_type.query.all()
+    business_types_serialized = [bt.serialize() for bt in business_types]
+    current_recommended = [rb.type_id for rb in offer.recommended_businesses]
 
     if request.method == 'POST':
         address=request.form.get('address') or ""
@@ -383,6 +401,18 @@ def edit_property(offer_id):
             }
             offer = OffersService.update_offer(offer, data)
         
+            # Update recommended businesses: delete old, add new
+            RecommendedBusiness.query.filter_by(listing_id=offer.id).delete()
+            recommended_types = request.form.getlist('recommended_types')
+            for type_id in recommended_types:
+                try:
+                    type_id_int = int(type_id)
+                    rec = RecommendedBusiness(listing_id=offer.id, type_id=type_id_int)
+                    db.session.add(rec)
+                except ValueError:
+                    continue
+
+
             # Handle photo deletions
             photos_to_delete = request.form.getlist('delete_photos')
             print(f"Photos to delete: {photos_to_delete}")  # Debug log
@@ -439,10 +469,19 @@ def edit_property(offer_id):
             flash("Не вдалося оновити оголошення", "danger")
 
 
-    return render_template('property_form.html', offer=offer, photos_serialized=photos_serialized)
+    return render_template('property_form.html', offer=offer, photos_serialized=photos_serialized, business_types=business_types_serialized, current_recommended=current_recommended)
 
        
-
+@test.route('/my-properties', methods=['GET'])
+@login_required
+@roles_required(User.ROLE_LANDLORD)
+def my_properties():
+    offers = OffersService.get_offers_by_owner(current_user.id)
+    serialized = OffersService.serialize_multiple(offers)
+    total = len(offers)
+    approved = sum(1 for o in offers if getattr(o, 'approved', False))
+    pending = total - approved
+    return render_template('my_properties.html', offers=serialized, total=total, approved=approved, pending=pending)
 
 
 
