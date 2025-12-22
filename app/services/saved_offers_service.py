@@ -9,6 +9,13 @@ class SavedOffersService:
         return SavedOffer.query.filter_by(user_id=user_id).all()
     
     @staticmethod
+    def is_offer_saved(user_id: int, offer_id: int) -> bool:
+        """Перевіряє, чи збережене оголошення користувачем."""
+        saved_offer = SavedOffer.query.filter_by(user_id=user_id, offer_id=offer_id).first()
+        print(f"Checked saved offer for user_id={user_id}, offer_id={offer_id}: {saved_offer}")
+        return saved_offer is not None
+    
+    @staticmethod
     def add_saved_offer(user_id: int, offer_id: int) -> SavedOffer:
         """Додає оголошення до збережених для користувача."""
         saved_offer = SavedOffer(user_id=user_id, offer_id=offer_id)

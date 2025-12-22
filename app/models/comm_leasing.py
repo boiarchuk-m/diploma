@@ -16,6 +16,7 @@ class CommLeasing(db.Model):
     stops_num = db.Column(db.Integer, nullable=True)
     owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     approved = db.Column(db.Boolean, default=False)
+    comment = db.Column(db.Text, nullable=True)
 
     owner = db.relationship('User', backref=db.backref('commercial_listings', lazy=True))
 

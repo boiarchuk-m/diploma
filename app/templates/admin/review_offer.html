@@ -14,27 +14,9 @@
         <button class="btn btn-outline-secondary" onclick="window.history.back()">
           ← Назад
         </button>
-
-        <!-- Кнопка Зберегти -->
-       {% if current_user.is_authenticated %}
-        {% if is_saved %}
-            <form method="POST" action="{{ url_for('saved_offers.unsave_offer', offer_id=offer.id) }}" style="display: inline;">
-            <button type="submit" class="btn btn-success">Збережено</button>
-            </form>
-        {% else %}
-            <form method="POST" action="{{ url_for('saved_offers.save_offer', offer_id=offer.id) }}" style="display: inline;">
-            <button type="submit" class="btn btn-primary">Зберегти</button>
-            </form>
-        {% endif %}
-        {% else %}
-        <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
-            Увійти, щоб зберегти
-        </a>
-        {% endif %}
-
+      
       </div>
       <!-- ======= КІНЕЦЬ КНОПОК ======= -->
-
 
 
       <div class="row g-3 mb-3">
@@ -134,18 +116,17 @@
                 </p>
               {% endif %}
 
-              <!-- Ranking info (буде заповнено з localStorage) -->
-            <div id="ranking-box" class="mt-2" style="display:none;">
-            <p class="mb-1">
-                <span class="badge bg-success">Ранг рекомендації: <span id="rank-val"></span></span>
-            </p>
-            <p class="mb-1 text-muted">
-                Конкуренти поруч: <strong id="comp-val"></strong>
-            </p>
-            <p class="mb-1 text-muted">
-                Інші бізнеси поруч: <strong id="otherbiz-val"></strong>
-            </p>
-            </div>
+              {% if offer.competitors_count %}
+                <p class="mb-1">
+                    <strong>Конкуренти цього типу бізнесу поблизу:</strong> {{ offer.competitors_count }}
+                </p>
+                {% endif %}
+
+                {% if offer.other_businesses_count %}
+                <p class="mb-1">
+                    <strong>Інші бізнеси поруч:</strong> {{ offer.other_businesses_count }}
+                </p>
+                {% endif %}
             </div>
           </div>
 
@@ -168,9 +149,6 @@
                 {% endif %}
                     </div>
           </div>
-
-         
-
 
 
           <!-- Контакти орендодавця -->
@@ -244,6 +222,29 @@
 
       </div>
 </div>
+
+<div class="card p-3 mb-2">
+  <h5 class="mb-2">Дії адміністратора</h5>
+
+  <form method="post" action="{{ url_for('admin.comment_offer', offer_id=offer.id) }}" class="mb-2">
+    <label class="form-label">Коментар адміна</label>
+    <textarea class="form-control" name="admin_comment" rows="3">{{ offer.admin_comment or "" }}</textarea>
+    <button class="btn btn-primary mt-2" type="submit">Зберегти коментар</button>
+  </form>
+
+  <form method="post" action="{{ url_for('admin.approve_offer', offer_id=offer.id) }}" class="d-inline">
+    <input type="hidden" name="admin_comment" value="{{ offer.admin_comment or '' }}">
+    <button class="btn btn-success mt-2" type="submit">Підтвердити</button>
+  </form>
+
+  <form method="post" action="{{ url_for('admin.delete_offer', offer_id=offer.id) }}" class="d-inline">
+    <button class="btn btn-danger mt-2" type="submit" onclick="return confirm('Видалити оголошення?')">
+      Видалити
+    </button>
+  </form>
+</div>
+
+
     </div>
   </div>
 </div>
@@ -288,40 +289,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script>   
+<script>
 document.addEventListener("DOMContentLoaded", function () {
- const offerId = {{ offer.id }};  
-  const rankingBox = document.getElementById("ranking-box");
-
-  try {
-    const raw = localStorage.getItem(`rank_extra_${offerId}`);
-    if (raw) {
-      const extra = JSON.parse(raw);
-
-      // показуємо блок лише якщо є хоч щось
-      const hasAny =
-        extra &&
-        (extra.rank !== null ||
-         extra.competitors_count !== null ||
-         extra.other_businesses_count !== null);
-
-      if (hasAny && rankingBox) {
-        rankingBox.style.display = "block";
-
-        const rankEl = document.getElementById("rank-val");
-        const compEl = document.getElementById("comp-val");
-        const otherEl = document.getElementById("otherbiz-val");
-
-        if (rankEl) rankEl.textContent = (extra.rank ?? "—");
-        if (compEl) compEl.textContent = (extra.competitors_count ?? "—");
-        if (otherEl) otherEl.textContent = (extra.other_businesses_count ?? "—");
-      }
-    }
-  } catch (e) {
-    console.warn("Failed to load ranking extra from localStorage:", e);
-  }
-
-
   const mainPhoto = document.getElementById("main-photo");
   const thumbs = Array.from(document.querySelectorAll(".thumb-img"));
   const prevBtn = document.querySelector(".photo-nav.prev");

@@ -17,21 +17,21 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
   <div class="container">
-    <a class="navbar-brand fw-bold" href="{{ url_for('test.index') }}">RentScore</a>
+    <a class="navbar-brand fw-bold" href="{{ url_for('offers.index') }}">RentScore</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav ms-auto">
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'test.index' %}active{% endif %}" href="{{ url_for('test.index') }}">Головна</a>
+          <a class="nav-link {% if request.endpoint == 'offers.index' %}active{% endif %}" href="{{ url_for('offers.index') }}">Головна</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'test.list_properties' %}active{% endif %}" href="{{ url_for('test.list_properties') }}">Оголошення</a>
+          <a class="nav-link {% if request.endpoint == 'offers.list_properties' %}active{% endif %}" href="{{ url_for('offers.list_properties') }}">Оголошення</a>
         </li>
         <li class="nav-item">
-              <a class="nav-link {% if request.endpoint == 'test.onboarding' %}active{% endif %}"
-                 href="{{ url_for('test.onboarding') }}">
+              <a class="nav-link {% if request.endpoint == 'onboarding.onboarding' %}active{% endif %}"
+                 href="{{ url_for('onboarding.onboarding') }}">
                 Підібрати приміщення
               </a>
             </li>
@@ -59,14 +59,14 @@
                    {% if current_user.role == 'tenant' %}
                    <li>
                     <a class="dropdown-item"
-                       href="{{ url_for('test.change_password') }}">
+                       href="{{ url_for('profile.change_password') }}">
                       Змінити пароль
                     </a>
                   </li>
 
                   <li>
                     <a class="dropdown-item"
-                       href="{{ url_for('test.saved_offers') }}">
+                       href="{{ url_for('saved_offers.saved_offers') }}">
                       Збережені оголошення
                     </a>
                   </li>
@@ -76,21 +76,21 @@
                   {% if current_user.role == 'landlord' %}
                      <li>
                     <a class="dropdown-item"
-                       href="{{ url_for('test.profile_view') }}">
+                       href="{{ url_for('profile.profile_view') }}">
                       Мій профіль
                     </a>
                   </li>
 
                     <li>
                       <a class="dropdown-item"
-                        href="{{ url_for('test.my_properties') }}">
+                        href="{{ url_for('offers.my_properties') }}">
                         Мої оголошення
                       </a>
                     </li>
 
                      <li>
                     <a class="dropdown-item"
-                       href="{{ url_for('test.saved_offers') }}">
+                       href="{{ url_for('saved_offers.saved_offers') }}">
                       Збережені оголошення
                     </a>
                   </li>
@@ -100,7 +100,7 @@
                   <li><hr class="dropdown-divider"></li>
                   <li>
                     <a class="dropdown-item text-danger"
-                       href="{{ url_for('test.logout') }}">
+                       href="{{ url_for('auth.logout') }}">
                       Вийти
                     </a>
                   </li>
@@ -111,13 +111,13 @@
               <!-- Якщо користувач НЕ увійшов -->
               <li class="nav-item">
                 <a class="nav-link"
-                   href="{{ url_for('test.login') }}">
+                   href="{{ url_for('auth.login') }}">
                   Увійти
                 </a>
               </li>
               <li class="nav-item">
                 <a class="btn btn-light ms-2 px-3"
-                   href="{{ url_for('test.register') }}">
+                   href="{{ url_for('auth.register') }}">
                   Реєстрація
                 </a>
               </li>

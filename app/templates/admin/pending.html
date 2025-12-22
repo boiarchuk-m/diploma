@@ -1,3 +1,4 @@
+
 {% extends 'base.html' %}
 
 {% block title %}Мої оголошення{% endblock %}
@@ -5,21 +6,6 @@
 {% block content %}
 <div id="app">
 
-  <!-- Statistics and Create Button -->
-  <div class="stats-panel">
-    <div class="stat-item">
-      <strong>Загальна кількість:</strong> {{ total }}
-    </div>
-    <div class="stat-item">
-      <strong>Затверджені:</strong> {{ approved }}
-    </div>
-    <div class="stat-item">
-      <strong>Очікують затвердження:</strong> {{ pending }}
-    </div>
-    <div class="stat-item">
-      <a href="{{ url_for('offers.create_property') }}" class="btn btn-primary">Створити нове оголошення</a>
-    </div>
-  </div>
 
   <!-- Loading indicator -->
   <div v-if="loading">Завантаження...</div>
@@ -45,7 +31,7 @@
         <div class="offer-top">
           <div>
             <div class="address">
-              <a :href="`/property/${offer.id}`">[[ offer.address ]]</a>
+              <a :href="`/admin/offer/${offer.id}`">[[ offer.address ]]</a>
             </div>
 
             <div class="meta">
@@ -53,11 +39,6 @@
               [[ offer.district ]] район • [[ offer.area ]] м²
             </div>
 
-            <!-- Approval status -->
-            <div class="status">
-              <span v-if="offer.approved" class="badge bg-success">Затверджено</span>
-              <span v-else class="badge bg-warning">Очікує затвердження</span>
-            </div>
           </div>
         </div>
 
@@ -69,8 +50,7 @@
 
         <!-- Edit button -->
         <div class="actions">
-          <a :href="`/property/${offer.id}/edit`" class="btn btn-sm btn-secondary">Редагувати</a>
-          <form method="POST" :action="`/property/${offer.id}/delete`" style="display: inline;">
+          <form method="POST" :action="`/offer/${offer.id}/delete`" style="display: inline;">
             <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Ви впевнені, що хочете видалити це оголошення?')">Видалити</button>
           </form>
         </div>

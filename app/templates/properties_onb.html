@@ -89,7 +89,7 @@
         <div class="offer-top">
           <div>
             <div class="address">
-               <a :href="`/property/${offer.id}`"> [[ offer.address ]] </a></div>
+               <a :href="`/property/${offer.id}`" @mousedown="storeRankData(offer)" @click="storeRankData(offer)">[[ offer.address ]]</a></div>
             
 
             <div class="meta">
@@ -203,6 +203,15 @@ const app = Vue.createApp({
   },
 
   methods: {
+    storeRankData(offer) {
+    const extra = {
+      rank: offer.rank ?? null,
+      score: offer.score ?? null,
+      competitors_count: offer.competitors_count ?? null,
+      other_businesses_count: offer.other_businesses_count ?? null
+    };
+    localStorage.setItem(`rank_extra_${offer.id}`, JSON.stringify(extra));
+    },
 
     shorten(text) {
       return text && text.length > 180 ? text.slice(0, 180) + '…' : text;

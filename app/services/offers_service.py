@@ -8,6 +8,10 @@ from app.models.saved_offers import SavedOffer
 import re
 import math
 from typing import List
+import os
+from typing import Iterable, Optional
+from werkzeug.datastructures import FileStorage
+from flask import current_app
 
 
 class OffersService:
@@ -137,9 +141,6 @@ class OffersService:
         return result
     
 
-
-    # CRUD operations 
-
     @staticmethod
     def create_offer(data: dict, owner_id: int |None = None) -> CommLeasing:
         """Створює нове оголошення."""
@@ -181,21 +182,12 @@ class OffersService:
         db.session.delete(offer)
         db.session.commit()
 
-    @staticmethod
-    def approve_offer(offer: CommLeasing) -> None:
-        """Затверджує оголошення."""
-        offer.approved = True
-        db.session.commit()
     
     @staticmethod
     def get_offers_by_owner(owner_id: int) -> list[CommLeasing]:
         """Повертає всі оголошення певного власника."""
         return CommLeasing.query.filter_by(owner_id=owner_id).all()
 
-    @staticmethod
-    def get_pending_offers() -> list[CommLeasing]:
-        """Повертає всі не затверджені оголошення."""
-        return CommLeasing.query.filter_by(approved=False).all()
     
     @staticmethod
     def count_offers() -> int:
@@ -245,36 +237,27 @@ class OffersService:
         :param ranked_items: Список словників, який повернув метод run() вашого сервісу.
                             Приклад: [{'id': 1, 'rank': 1, 'score': 0.8, ...}, ...]"""
 
-        # 1. Fallback: Якщо ранжування нічого не повернуло (порожній список)
-        # Повертаємо просто всі оголошення без ранжування (як було у вашому старому коді)
+       
         if not ranked_items:
             offers = OffersService.get_all()
             return OffersService.serialize_multiple(offers)
         
-        # 2. Витягуємо список ID для запиту в базу даних
-        # Це потрібно, щоб зробити один ефективний запит замість N запитів у циклі
         offer_ids = [item['id'] for item in ranked_items]
 
-        # 3. Отримуємо "важкі" об'єкти з БД (SQLAlchemy objects)
-        # Повертає словник {id: OfferObject}
         offers_map = OffersService.get_multiple(offer_ids)
 
         offers_for_view: List[dict] = []
 
-        # 4. Проходимо по ранжованому списку (щоб зберегти порядок сортування TOPSIS)
         for meta_data in ranked_items:
             oid = meta_data['id']
             offer_db = offers_map.get(oid)
             
-            # Якщо з якоїсь причини об'єкта немає в базі (видалений), пропускаємо
             if not offer_db:
                 continue
 
             # Серіалізуємо дані з БД (Title, Price, Area, Photos)
             serialized = OffersService.serialize_offer(offer_db)
 
-            # 5. MERGE: Додаємо аналітичні дані, які ми порахували в run()
-            # Використовуємо .update() для чистоти коду
             serialized.update({
                 "rank": meta_data.get("rank"),
                 "score": meta_data.get("score"),
@@ -284,11 +267,220 @@ class OffersService:
 
             offers_for_view.append(serialized)
     
-        # 6. Фінальне сортування (про всяк випадок, хоча ranked_items вже має бути відсортованим)
-        # Використовуємо float('inf') щоб елементи без рангу (якщо такі будуть) йшли в кінець
         offers_for_view.sort(key=lambda x: x.get("rank") if x.get("rank") is not None else float('inf'))
 
         return offers_for_view
+    
+
+    @staticmethod
+    def create_offer_full(
+        data: dict,
+        owner_id: int,
+        recommended_type_ids: list[int],
+        files: Iterable[FileStorage],
+        allowed_file,
+        unique_filename,
+    ) -> CommLeasing:
+
+        offer = CommLeasing(
+            address=data["address"],
+            district=data["district"],
+            city=data.get("city") or "",
+            price=data["price"],
+            area=data["area"],
+            description=data.get("description") or "",
+            repair=data.get("repair") or "",
+            owner_id=owner_id,
+            approved=False,
+        )
+
+        if hasattr(offer, "comment"):
+            offer.comment = None
+
+        db.session.add(offer)
+        db.session.flush()
+
+        OffersService._sync_recommended_types(offer.id, recommended_type_ids)
+        OffersService._save_photos(offer.id, files, allowed_file, unique_filename)
+
+        OffersService._ensure_primary_photo(offer.id)
+
+        db.session.commit()
+        return offer
+
+    @staticmethod
+    def update_offer_full(
+        offer: CommLeasing,
+        data: dict,
+        recommended_type_ids: list[int],
+        files: Iterable[FileStorage],
+        delete_photo_ids: list[str],
+        new_primary_id: Optional[str],
+        allowed_file,
+        unique_filename,
+    ) -> CommLeasing:
+
+        # update fields
+        for k, v in data.items():
+            if hasattr(offer, k):
+                setattr(offer, k, v)
+
+        if hasattr(offer, "approved"):
+            offer.approved = False
+
+        if hasattr(offer, "comment"):
+            offer.comment = None
+
+        OffersService._sync_recommended_types(offer.id, recommended_type_ids)
+
+        # 1) delete selected photos
+        OffersService._delete_photos(offer.id, delete_photo_ids)
+
+        # 2) set new primary if user chose (може бути видалене -> тоді не спрацює)
+        OffersService._set_primary_photo(offer.id, new_primary_id)
+
+        # 3) add new uploads
+        OffersService._save_photos(offer.id, files, allowed_file, unique_filename)
+
+        # 4) ensure we still have a primary if photos exist
+        OffersService._ensure_primary_photo(offer.id)
+
+        db.session.commit()
+        return offer
+    
+    # ---- internal helpers ----
+
+    @staticmethod
+    def _create_offer(data, owner_id):
+        offer = CommLeasing(**data, owner_id=owner_id, approved=False)
+        db.session.add(offer)
+        db.session.flush()
+        return offer
+
+    @staticmethod
+    def _update_offer(offer, data):
+        for k, v in data.items():
+            setattr(offer, k, v)
+        return offer
+    
+
+    @staticmethod
+    def _sync_recommended_types(listing_id: int, type_ids: list[int]) -> None:
+        RecommendedBusiness.query.filter_by(listing_id=listing_id).delete()
+        for tid in type_ids:
+            db.session.add(RecommendedBusiness(listing_id=listing_id, type_id=int(tid)))
+
+    @staticmethod
+    def _save_photos(
+        offer_id: int,
+        files: Iterable[FileStorage],
+        allowed_file,
+        unique_filename,
+    ) -> None:
+
+        upload_folder = current_app.config["UPLOAD_FOLDER"]
+        os.makedirs(upload_folder, exist_ok=True)
+
+        # чи вже є primary (після delete могло не бути)
+        has_primary = (
+            OfferPhoto.query.filter_by(offer_id=offer_id, is_primary=True).first()
+            is not None
+        )
+
+        for idx, file in enumerate(files):
+            if not file or file.filename == "":
+                continue
+            if not allowed_file(file.filename):
+                continue
+
+            filename = unique_filename(file.filename)
+            file_path = os.path.join(upload_folder, filename)
+            file.save(file_path)
+
+            relative_path = os.path.join("photos", filename).replace("\\", "/")
+
+            # якщо primary немає — перше додане стає primary
+            is_primary = (not has_primary and idx == 0)
+            if is_primary:
+                has_primary = True
+
+            db.session.add(
+                OfferPhoto(
+                    offer_id=offer_id,
+                    photo_url=relative_path,
+                    is_primary=is_primary,
+                )
+            )
+      
+
+    @staticmethod
+    def _delete_photos(offer_id: int, photo_ids: list[str]) -> None:
+        upload_folder = current_app.config["UPLOAD_FOLDER"]
+
+        for pid in photo_ids:
+            if not pid:
+                continue
+            try:
+                pid_int = int(pid)
+            except ValueError:
+                continue
+
+            photo = OfferPhoto.query.get(pid_int)
+            if not photo or photo.offer_id != offer_id:
+                continue
+
+            filename = photo.photo_url.replace("photos/", "")
+            file_path = os.path.join(upload_folder, filename)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+            db.session.delete(photo)
+
+
+    @staticmethod
+    def _set_primary_photo(offer_id: int, new_primary_id: Optional[str]) -> None:
+        if not new_primary_id:
+            return
+
+        try:
+            pid = int(new_primary_id)
+        except ValueError:
+            return
+
+        photo = OfferPhoto.query.get(pid)
+        if not photo or photo.offer_id != offer_id:
+            return
+
+        # робимо тільки ОДНЕ primary
+        OfferPhoto.query.filter_by(offer_id=offer_id).update({"is_primary": False})
+        photo.is_primary = True
+
+
+    @staticmethod
+    def _ensure_primary_photo(offer_id: int) -> None:
+        """
+        Гарантує, що:
+        - якщо фото існують -> є primary
+        - і бажано лише одне primary
+        """
+        photos = OfferPhoto.query.filter_by(offer_id=offer_id).order_by(OfferPhoto.id.asc()).all()
+        if not photos:
+            return
+
+        primaries = [p for p in photos if p.is_primary]
+
+        if len(primaries) == 0:
+            # якщо primary немає — ставимо перше
+            photos[0].is_primary = True
+            return
+
+        if len(primaries) > 1:
+            keep_id = primaries[0].id
+            for p in primaries[1:]:
+                p.is_primary = False
+
+
+    
 
 
     

@@ -35,7 +35,19 @@ def load_user(user_id):
     # Return the user object for the given user_id
     return User.query.get(int(user_id))
 
-from app.test import test
+from app.routes import test
+from app.routes.admin import admin_bp
+from app.routes.onboarding import onboarding_bp
+from app.routes.profile import profile_bp
+from app.routes.saved_offers import saved_offers_bp
+from app.routes.auth import auth_bp
+from app.routes.offers import offers_bp
 
 
-app.register_blueprint(test)
+app.register_blueprint(admin_bp)
+app.register_blueprint(onboarding_bp)
+app.register_blueprint(profile_bp)
+app.register_blueprint(saved_offers_bp)
+app.register_blueprint(auth_bp)
+app.register_blueprint(offers_bp)
+
