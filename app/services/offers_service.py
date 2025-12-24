@@ -31,7 +31,12 @@ class OffersService:
     @staticmethod
     def get_all():
         """Повертає всі оголошення."""
-        return CommLeasing.query.all()
+        return CommLeasing.query.order_by(CommLeasing.id).all()
+    
+    @staticmethod
+    def get_approved():
+        """Повертає підтверджені оолошення."""
+        return CommLeasing.query.filter_by(approved=True).order_by(CommLeasing.id).all()
 
     @staticmethod
     def serialize_offer(offer: CommLeasing):

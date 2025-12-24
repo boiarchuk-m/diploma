@@ -81,7 +81,7 @@
         :class="{ active: selectedDistricts.includes(district) }"
         @click="toggleDistrict(district)"
       >
-         <span>[[ district ]]</span>
+        <div class="text-center"> <span>[[ district ]]</span> </div>
       </button>
     </div>
 
@@ -92,7 +92,7 @@
         :class="{ active: notImportant }"
         @click="selectNotImportant"
       >
-         <span>Неважливо</span>
+        <div class="text-center"> <span>Неважливо</span> </div>
       </button>
     </div>
   </div>

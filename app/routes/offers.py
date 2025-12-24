@@ -19,7 +19,7 @@ def index():
 
 @offers_bp.route('/properties', methods=['GET'])
 def list_properties():
-    offers = OffersService.get_all()
+    offers = OffersService.get_approved()
     offers_serialized = OffersService.serialize_multiple(offers)
 
     return render_template("properties.html", offers=offers_serialized)
@@ -72,6 +72,30 @@ def property_detail(offer_id):
         is_saved = SavedOffersService.is_offer_saved(current_user.id, offer_id)
 
     return render_template('property_detail.html', offer=offer_serialized, is_saved=is_saved)
+
+
+@offers_bp.route('/onboarding/property/<int:offer_id>', methods=['GET'])
+def onboarding_property_detail(offer_id):
+    offer = OffersService.get_by_id(offer_id)
+    if not offer:
+        flash("Оголошення не знайдено.", "danger")
+        return redirect(url_for('offers.list_properties'))
+
+    offer_serialized = OffersService.serialize_offer(offer)
+
+    ranking_results = session.get("ranking_results", {})
+    extra = ranking_results.get(str(offer_id))
+    if extra:
+        offer_serialized["ranking"] = extra.get("rank")
+        offer_serialized["competitors_count"] = extra.get("competitors_count")
+        offer_serialized["other_businesses_count"] = extra.get("other_businesses_count")
+    #print(offer_serialized["competitors_count"])
+    is_saved = False
+    if current_user.is_authenticated:
+        is_saved = SavedOffersService.is_offer_saved(current_user.id, offer_id)
+
+    return render_template('property_detail_onb.html', offer=offer_serialized, is_saved=is_saved)
+
 
 
 

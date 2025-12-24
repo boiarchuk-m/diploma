@@ -125,7 +125,27 @@
               {% if offer.repair %}
                 <p class="mb-1"><strong>Ремонт:</strong> {{ offer.repair }}</p>
               {% endif %}
+              {% if offer.stops_num is not none %}
+                <p class="mb-1"><strong>Зупинки поруч:</strong> {{ offer.stops_num }}</p>
+              {% endif %}
+              {% if offer.ranking %}
+                <p class="mb-1">
+                  <strong>Ранг рекомендації: </strong> {{ offer.ranking }}
+                </p>
+              {% endif %}
 
+              <!-- Ranking info (буде заповнено з localStorage) -->
+            <div id="ranking-box" class="mt-2" style="display:none;">
+            <p class="mb-1">
+                <span class="badge bg-success">Ранг рекомендації: <span id="rank-val"></span></span>
+            </p>
+            <p class="mb-1 text-muted">
+                Конкуренти поруч: <strong id="comp-val"></strong>
+            </p>
+            <p class="mb-1 text-muted">
+                Інші бізнеси поруч: <strong id="otherbiz-val"></strong>
+            </p>
+            </div>
             </div>
           </div>
 
@@ -148,6 +168,8 @@
                 {% endif %}
                     </div>
           </div>
+
+         
 
 
 
@@ -268,6 +290,38 @@
 {% block scripts %}
 <script>   
 document.addEventListener("DOMContentLoaded", function () {
+ const offerId = {{ offer.id }};  
+  const rankingBox = document.getElementById("ranking-box");
+
+  try {
+    const raw = localStorage.getItem(`rank_extra_${offerId}`);
+    if (raw) {
+      const extra = JSON.parse(raw);
+
+      // показуємо блок лише якщо є хоч щось
+      const hasAny =
+        extra &&
+        (extra.rank !== null ||
+         extra.competitors_count !== null ||
+         extra.other_businesses_count !== null);
+
+      if (hasAny && rankingBox) {
+        rankingBox.style.display = "block";
+
+        const rankEl = document.getElementById("rank-val");
+        const compEl = document.getElementById("comp-val");
+        const otherEl = document.getElementById("otherbiz-val");
+
+        if (rankEl) rankEl.textContent = (extra.rank ?? "—");
+        if (compEl) compEl.textContent = (extra.competitors_count ?? "—");
+        if (otherEl) otherEl.textContent = (extra.other_businesses_count ?? "—");
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to load ranking extra from localStorage:", e);
+  }
+
+
   const mainPhoto = document.getElementById("main-photo");
   const thumbs = Array.from(document.querySelectorAll(".thumb-img"));
   const prevBtn = document.querySelector(".photo-nav.prev");
